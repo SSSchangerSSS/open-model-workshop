@@ -68,6 +68,6 @@
 @property --a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
 @keyframes spin { to { --a: 360deg; } }
 @keyframes shine { to { background-position: 200% center; } }
-@keyframes marquee { to { transform: translateX(50%); } }
+@keyframes marquee { to { transform: translateX(-50%); } }
 @keyframes float { 50% { transform: translateY(-14px); } }
 @keyframes aurora { 0% { transform: translate(-10%,-10%) rotate(0); } 100% { transform: translate(10%,10%) rotate(30deg); } }

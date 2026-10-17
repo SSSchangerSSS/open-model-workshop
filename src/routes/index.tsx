@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
+import { ContainerScroll, Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
 import hero from "@/assets/hero.jpg";
 import hardware from "@/assets/hardware.jpg";
 import workflow from "@/assets/workflow.jpg";

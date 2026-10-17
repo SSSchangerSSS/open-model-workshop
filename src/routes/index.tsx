@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
+import { ContainerScroll, Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
 import hero from "@/assets/hero.jpg";
 import hardware from "@/assets/hardware.jpg";
 import workflow from "@/assets/workflow.jpg";
@@ -36,6 +37,7 @@ const faq = [
 function Index() {
   return (
     <Shell>
+      <ScrollProgress />
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-primary/20 blur-3xl animate-aurora" />
@@ -63,9 +65,9 @@ function Index() {
             </div>
           </Reveal>
           <Reveal delay={400}>
-            <div className="mt-16 rounded-2xl border-beam glow overflow-hidden animate-float">
+            <ContainerScroll><div className="mt-16 rounded-2xl border-beam glow overflow-hidden">
               <img src={hero} alt="سرور هوش مصنوعی با کارت‌های گرافیک" width={1536} height={1024} className="w-full rounded-2xl" />
-            </div>
+            </div></ContainerScroll>
           </Reveal>
         </div>
       </section>
@@ -108,21 +110,8 @@ function Index() {
       </section>
 
       {/* PROCESS */}
-      <section className="bg-card/40 border-y py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal><h2 className="text-3xl md:text-5xl font-black text-center">مسیر همکاری</h2></Reveal>
-          <div className="mt-14 grid md:grid-cols-4 gap-6">
-            {steps.map(([n, t, d], i) => (
-              <Reveal key={n} delay={i * 120}>
-                <div className="group rounded-2xl border bg-background p-6 h-full hover:border-primary hover:-translate-y-2 transition duration-500">
-                  <div className="font-mono text-3xl text-primary/50 group-hover:text-primary transition">{n}</div>
-                  <h3 className="mt-4 font-bold text-lg">{t}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
+      <section className="bg-card/40 border-y">
+        <StickySteps steps={steps} />
       </section>
 
       {/* FAQ */}
@@ -159,7 +148,7 @@ function Bento({ img, tag, title, desc, className = "" }: { img: string; tag: st
   return (
     <Reveal className={`${className} h-full`}>
       <div className="group relative h-full min-h-[280px] overflow-hidden rounded-2xl border">
-        <img src={img} alt={title} loading="lazy" width={1024} height={768} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+        <Parallax speed={0.15} className="absolute -inset-y-16 inset-x-0"><img src={img} alt={title} loading="lazy" width={1024} height={768} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" /></Parallax>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
         <div className="relative h-full flex flex-col justify-end p-6">
           <span className="font-mono text-xs text-accent">{tag}</span>

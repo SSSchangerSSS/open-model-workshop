@@ -2,6 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
 import { ContainerScroll, Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
+import { Intro } from "@/components/Intro";
+import { CursorGlow, Tilt, Magnetic } from "@/components/Interactive";
 import hero from "@/assets/hero.jpg";
 import hardware from "@/assets/hardware.jpg";
 import workflow from "@/assets/workflow.jpg";
@@ -37,6 +39,8 @@ const faq = [
 function Index() {
   return (
     <Shell>
+      <Intro />
+      <CursorGlow />
       <ScrollProgress />
       {/* HERO */}
       <section className="relative overflow-hidden">
@@ -60,14 +64,14 @@ function Index() {
           </Reveal>
           <Reveal delay={300}>
             <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Link to="/contact" className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold glow hover:scale-105 transition">مشاوره رایگان بگیرید</Link>
+              <Magnetic><Link to="/contact" className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold glow hover:scale-105 transition">مشاوره رایگان بگیرید</Link></Magnetic>
               <Link to="/services" className="border bg-card/50 backdrop-blur px-8 py-4 rounded-xl hover:border-primary transition">مشاهده خدمات</Link>
             </div>
           </Reveal>
           <Reveal delay={400}>
-            <ContainerScroll><div className="mt-16 rounded-2xl border-beam glow overflow-hidden">
+            <ContainerScroll><Tilt max={6}><div className="mt-16 rounded-2xl border-beam glow overflow-hidden">
               <img src={hero} alt="سرور هوش مصنوعی با کارت‌های گرافیک" width={1536} height={1024} className="w-full rounded-2xl" />
-            </div></ContainerScroll>
+            </div></Tilt></ContainerScroll>
           </Reveal>
         </div>
       </section>
@@ -147,7 +151,7 @@ function Index() {
 function Bento({ img, tag, title, desc, className = "" }: { img: string; tag: string; title: string; desc: string; className?: string }) {
   return (
     <Reveal className={`${className} h-full`}>
-      <div className="group relative h-full min-h-[280px] overflow-hidden rounded-2xl border">
+      <Tilt className="h-full"><div className="group relative h-full min-h-[280px] overflow-hidden rounded-2xl border">
         <Parallax speed={0.15} className="absolute -inset-y-16 inset-x-0"><img src={img} alt={title} loading="lazy" width={1024} height={768} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" /></Parallax>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
         <div className="relative h-full flex flex-col justify-end p-6">
@@ -155,7 +159,7 @@ function Bento({ img, tag, title, desc, className = "" }: { img: string; tag: st
           <h3 className="mt-1 text-2xl font-bold">{title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
         </div>
-      </div>
+      </div></Tilt>
     </Reveal>
   );
 }

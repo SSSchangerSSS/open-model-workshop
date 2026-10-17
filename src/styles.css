@@ -72,3 +72,11 @@
 @keyframes float { 50% { transform: translateY(-14px); } }
 @keyframes aurora { 0% { transform: translate(-10%,-10%) rotate(0); } 100% { transform: translate(10%,10%) rotate(30deg); } }
 html{scroll-behavior:smooth}
+@utility intro-fly { animation: fly 3.8s cubic-bezier(.5,0,.2,1) forwards; }
+@utility intro-title { animation: introTitle 3.8s ease forwards; }
+@utility intro-floor {
+  background-image: linear-gradient(var(--primary) 1px, transparent 1px), linear-gradient(90deg, var(--primary) 1px, transparent 1px);
+  background-size: 40px 40px; opacity: .25;
+}
+@keyframes fly { from { transform: translateZ(-600px); } to { transform: translateZ(1900px); } }
+@keyframes introTitle { 0%,35% { opacity: 0; transform: scale(.7); } 60% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1.4); } }

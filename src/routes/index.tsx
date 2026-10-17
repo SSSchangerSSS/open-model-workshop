@@ -108,21 +108,8 @@ function Index() {
       </section>
 
       {/* PROCESS */}
-      <section className="bg-card/40 border-y py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <Reveal><h2 className="text-3xl md:text-5xl font-black text-center">مسیر همکاری</h2></Reveal>
-          <div className="mt-14 grid md:grid-cols-4 gap-6">
-            {steps.map(([n, t, d], i) => (
-              <Reveal key={n} delay={i * 120}>
-                <div className="group rounded-2xl border bg-background p-6 h-full hover:border-primary hover:-translate-y-2 transition duration-500">
-                  <div className="font-mono text-3xl text-primary/50 group-hover:text-primary transition">{n}</div>
-                  <h3 className="mt-4 font-bold text-lg">{t}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
+      <section className="bg-card/40 border-y">
+        <StickySteps steps={steps} />
       </section>
 
       {/* FAQ */}

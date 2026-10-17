@@ -4,9 +4,9 @@ import { Shell, services } from "@/components/Shell";
 export const Route = createFileRoute("/services")({
   head: () => ({
     meta: [
-      { title: "خدمات | هوش‌کار" },
+      { title: "خدمات | هوش برتر" },
       { name: "description", content: "اتوماسیون n8n، Flowise، استقرار سرور AI، بستن سخت‌افزار GPU و راه‌اندازی مدل‌های open-weight." },
-      { property: "og:title", content: "خدمات هوش‌کار" },
+      { property: "og:title", content: "خدمات هوش برتر" },
       { property: "og:description", content: "فهرست کامل خدمات اتوماسیون و زیرساخت هوش مصنوعی." },
     ],
   }),

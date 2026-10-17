@@ -9,9 +9,9 @@ import llm from "@/assets/llm.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "هوش‌کار | اتوماسیون n8n، Flowise و سرور هوش مصنوعی" },
+      { title: "هوش برتر | اتوماسیون n8n، Flowise و سرور هوش مصنوعی" },
       { name: "description", content: "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور AI، بستن سخت‌افزار و راه‌اندازی مدل‌های open-weight." },
-      { property: "og:title", content: "هوش‌کار | اتوماسیون و زیرساخت هوش مصنوعی" },
+      { property: "og:title", content: "هوش برتر | اتوماسیون و زیرساخت هوش مصنوعی" },
       { property: "og:description", content: "هوش مصنوعی را روی سرور خودتان اجرا کنید و کارها را خودکار کنید." },
     ],
   }),

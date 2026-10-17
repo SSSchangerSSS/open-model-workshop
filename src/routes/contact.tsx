@@ -5,9 +5,9 @@ import { Shell } from "@/components/Shell";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "تماس | هوش‌کار" },
+      { title: "تماس | هوش برتر" },
       { name: "description", content: "برای مشاوره اتوماسیون و زیرساخت هوش مصنوعی با ما تماس بگیرید." },
-      { property: "og:title", content: "تماس با هوش‌کار" },
+      { property: "og:title", content: "تماس با هوش برتر" },
       { property: "og:description", content: "درخواست مشاوره رایگان." },
     ],
   }),

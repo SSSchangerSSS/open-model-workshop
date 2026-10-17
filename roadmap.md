@@ -1,0 +1,2 @@
+- [x] Pro animated landing page with generated images
+- [x] Rename brand to هوش برتر (keep contact info unchanged)

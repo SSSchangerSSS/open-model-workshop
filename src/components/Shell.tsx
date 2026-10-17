@@ -12,7 +12,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div dir="rtl" className="min-h-screen flex flex-col">
       <header className="border-b bg-background/80 backdrop-blur sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="font-mono text-primary font-bold">&gt; هوش‌کار_</Link>
+          <Link to="/" className="font-mono text-primary font-bold">&gt; هوش برتر_</Link>
           <nav className="flex gap-6 text-sm">
             {nav.map((n) => (
               <Link key={n.to} to={n.to} className="text-muted-foreground hover:text-primary" activeProps={{ className: "text-primary" }} activeOptions={{ exact: true }}>
@@ -24,7 +24,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t py-8 text-center text-sm text-muted-foreground font-mono">
-        © ۱۴۰۵ هوش‌کار — اتوماسیون و زیرساخت هوش مصنوعی
+        © ۱۴۰۵ هوش برتر — اتوماسیون و زیرساخت هوش مصنوعی
       </footer>
     </div>
   );

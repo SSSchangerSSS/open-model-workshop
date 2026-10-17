@@ -37,6 +37,7 @@ const faq = [
 function Index() {
   return (
     <Shell>
+      <ScrollProgress />
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-primary/20 blur-3xl animate-aurora" />
@@ -64,9 +65,9 @@ function Index() {
             </div>
           </Reveal>
           <Reveal delay={400}>
-            <div className="mt-16 rounded-2xl border-beam glow overflow-hidden animate-float">
+            <ContainerScroll><div className="mt-16 rounded-2xl border-beam glow overflow-hidden">
               <img src={hero} alt="سرور هوش مصنوعی با کارت‌های گرافیک" width={1536} height={1024} className="w-full rounded-2xl" />
-            </div>
+            </div></ContainerScroll>
           </Reveal>
         </div>
       </section>
@@ -147,7 +148,7 @@ function Bento({ img, tag, title, desc, className = "" }: { img: string; tag: st
   return (
     <Reveal className={`${className} h-full`}>
       <div className="group relative h-full min-h-[280px] overflow-hidden rounded-2xl border">
-        <img src={img} alt={title} loading="lazy" width={1024} height={768} className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-110" />
+        <Parallax speed={0.15} className="absolute -inset-y-16 inset-x-0"><img src={img} alt={title} loading="lazy" width={1024} height={768} className="h-full w-full object-cover transition duration-700 group-hover:scale-110" /></Parallax>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
         <div className="relative h-full flex flex-col justify-end p-6">
           <span className="font-mono text-xs text-accent">{tag}</span>

@@ -5,7 +5,7 @@ export function Reveal({ children, delay = 0, className = "" }: { children: Reac
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && (el.classList.add("in"), io.disconnect()), { threshold: 0.15 });
+    const io = new IntersectionObserver(([e]) => e?.isIntersecting && (el.classList.add("in"), io.disconnect()), { threshold: 0.15 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -17,7 +17,7 @@ export function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
+      if (!e?.isIntersecting) return;
       io.disconnect();
       const t0 = performance.now();
       const tick = (t: number) => { const p = Math.min(1, (t - t0) / 1500); setN(Math.round(to * (1 - (1 - p) ** 3))); if (p < 1) requestAnimationFrame(tick); };

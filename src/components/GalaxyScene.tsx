@@ -250,7 +250,11 @@ function ModelStar({
 
   const labelW = (tex: THREE.CanvasTexture, h: number) =>
     Math.min(3.2, h * (tex.image.width / tex.image.height));
-  const showLabels = (labelsOn || hover || selected) && !dimmed;
+  const active = labelsOn || hover || selected;
+  // English names stay visible on the star chart even in overview;
+  // Persian names join in when the galaxy is focused or the star is hot.
+  const showFa = active && !dimmed;
+  const showEn = !dimmed;
 
   return (
     <group ref={group}>
@@ -286,23 +290,20 @@ function ModelStar({
         <meshBasicMaterial color={m.accent} transparent opacity={0.85} toneMapped={false} />
       </mesh>
 
-      {/* floating labels (visible when the galaxy is active or star hovered) */}
-      <Billboard position={[0, size * 2 + 0.9, 0]} visible={showLabels}>
-        <mesh>
-          <planeGeometry args={[labelW(texs.fa, 0.3), 0.3]} />
-          <meshBasicMaterial
-            map={texs.fa}
-            transparent
-            opacity={showLabels ? 1 : 0}
-            toneMapped={false}
-          />
-        </mesh>
-        <mesh position={[0, -0.34, 0]}>
-          <planeGeometry args={[labelW(texs.en, 0.19), 0.19]} />
+      {/* floating labels — EN always on, FA appears when focused/hovered */}
+      <Billboard position={[0, size * 2 + 0.9, 0]} visible={showEn}>
+        {showFa && (
+          <mesh>
+            <planeGeometry args={[labelW(texs.fa, 0.3), 0.3]} />
+            <meshBasicMaterial map={texs.fa} transparent opacity={1} toneMapped={false} />
+          </mesh>
+        )}
+        <mesh position={[0, showFa ? -0.34 : 0, 0]}>
+          <planeGeometry args={[labelW(texs.en, showFa ? 0.19 : 0.24), showFa ? 0.19 : 0.24]} />
           <meshBasicMaterial
             map={texs.en}
             transparent
-            opacity={showLabels ? 0.95 : 0}
+            opacity={active ? 1 : 0.62}
             toneMapped={false}
           />
         </mesh>
@@ -346,6 +347,7 @@ function Galaxy({
   reduced,
   matrixFont,
   register,
+  onCorePick,
   children,
 }: {
   cat: ModelCategory;
@@ -354,6 +356,7 @@ function Galaxy({
   reduced: boolean;
   matrixFont: boolean;
   register: (key: string, obj: THREE.Object3D | null) => void;
+  onCorePick: (cat: ModelCategory) => void;
   children: React.ReactNode;
 }) {
   const spec = CATEGORY_MAP[cat];
@@ -366,6 +369,22 @@ function Galaxy({
   const anchor = useRef<THREE.Group>(null);
   const coreWire = useRef<THREE.Mesh>(null);
   const coreRing = useRef<THREE.Mesh>(null);
+  const [coreHover, setCoreHover] = useState(false);
+
+  const coreOver = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    setCoreHover(true);
+    document.body.style.cursor = "pointer";
+  };
+  const coreOut = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    setCoreHover(false);
+    document.body.style.cursor = "auto";
+  };
+  const coreClick = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    onCorePick(cat);
+  };
 
   const texs = useMemo(
     () => ({
@@ -419,40 +438,67 @@ function Galaxy({
         opacity={dimmed ? 0.07 : 0.38}
       />
 
-      {/* core sun */}
-      <mesh>
-        <sphereGeometry args={[0.55, 32, 32]} />
-        <meshBasicMaterial color={spec.color} toneMapped={false} />
-      </mesh>
-      <sprite scale={[3.4, 3.4, 1]}>
-        <spriteMaterial
-          map={glowTexture(spec.color)}
-          transparent
-          opacity={dimmed ? 0.1 : 0.5}
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </sprite>
-      <mesh ref={coreWire}>
-        <icosahedronGeometry args={[0.95, 1]} />
-        <meshBasicMaterial
-          color={spec.color}
-          wireframe
-          transparent
-          opacity={dimmed ? 0.06 : 0.3}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh ref={coreRing} rotation-x={Math.PI / 2.4}>
-        <torusGeometry args={[1.25, 0.012, 8, 64]} />
-        <meshBasicMaterial
-          color={spec.color}
-          transparent
-          opacity={dimmed ? 0.08 : 0.5}
-          toneMapped={false}
-        />
-      </mesh>
+      {/* core sun — hover shows the category name, click flies to this galaxy */}
+      <group
+        onPointerOver={coreOver}
+        onPointerOut={coreOut}
+        onClick={coreClick}
+      >
+        <mesh>
+          <sphereGeometry args={[0.55, 32, 32]} />
+          <meshBasicMaterial color={spec.color} toneMapped={false} />
+        </mesh>
+        <sprite scale={[3.4, 3.4, 1]}>
+          <spriteMaterial
+            map={glowTexture(spec.color)}
+            transparent
+            opacity={dimmed ? 0.1 : coreHover ? 0.85 : 0.5}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </sprite>
+        <mesh ref={coreWire}>
+          <icosahedronGeometry args={[0.95, 1]} />
+          <meshBasicMaterial
+            color={spec.color}
+            wireframe
+            transparent
+            opacity={dimmed ? 0.06 : coreHover ? 0.75 : 0.3}
+            toneMapped={false}
+          />
+        </mesh>
+        <mesh ref={coreRing} rotation-x={Math.PI / 2.4}>
+          <torusGeometry args={[1.25, 0.012, 8, 64]} />
+          <meshBasicMaterial
+            color={spec.color}
+            transparent
+            opacity={dimmed ? 0.08 : coreHover ? 0.9 : 0.5}
+            toneMapped={false}
+          />
+        </mesh>
+      </group>
+      {coreHover && !dimmed && (
+        <Html
+          position={[0, 2.1, 0]}
+          center
+          zIndexRange={[15, 10]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div className="rack-tip" dir="rtl">
+            <p className="text-sm font-black whitespace-nowrap" style={{ color: spec.color }}>
+              {spec.fa}
+            </p>
+            <p className="mt-0.5 font-mono text-[11px] font-bold text-accent whitespace-nowrap" dir="ltr">
+              {spec.en} · {count} MODELS
+            </p>
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground whitespace-nowrap">
+              {spec.descFa}
+            </p>
+            <p className="mt-1.5 text-[10px] text-primary">کلیک روی هسته: سفر به این کهکشان</p>
+          </div>
+        </Html>
+      )}
       <pointLight
         intensity={dimmed ? 0.3 : 1.1}
         distance={maxR * 3.2}
@@ -676,6 +722,7 @@ function World({
   reduced,
   matrixFont,
   onPick,
+  onCorePick,
 }: {
   p: Palette;
   nav: React.RefObject<NavState>;
@@ -685,6 +732,7 @@ function World({
   reduced: boolean;
   matrixFont: boolean;
   onPick: (i: number) => void;
+  onCorePick: (cat: ModelCategory) => void;
 }) {
   const register = (key: string, obj: THREE.Object3D | null) => {
     const map = regs.current;
@@ -720,6 +768,7 @@ function World({
           reduced={reduced}
           matrixFont={matrixFont}
           register={register}
+          onCorePick={onCorePick}
         >
           {MODELS.map((m, i) =>
             m.cat === c.key ? (
@@ -755,10 +804,12 @@ export default function GalaxyScene({
   focus,
   catFilter,
   onPick,
+  onCorePick,
 }: {
   focus: number;
   catFilter: ModelCategory | null;
   onPick: (i: number) => void;
+  onCorePick: (cat: ModelCategory) => void;
 }) {
   const [p] = useState(getPalette);
   const [reduced] = useState(
@@ -825,6 +876,7 @@ export default function GalaxyScene({
           reduced={reduced}
           matrixFont={matrixFont}
           onPick={onPick}
+          onCorePick={onCorePick}
         />
       </Suspense>
       {/* NOTE: no EffectComposer here — @react-three/postprocessing takes over

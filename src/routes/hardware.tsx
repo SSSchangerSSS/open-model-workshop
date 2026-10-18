@@ -39,7 +39,10 @@ export const Route = createFileRoute("/hardware")({
   component: HardwarePage,
 });
 
-const faDigits = (v: number | string) => String(v).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+const faDigits = (v: number | string) => {
+  const FA = "۰۱۲۳۴۵۶۷۸۹";
+  return String(v).replace(/\d/g, (d) => FA[Number(d)] ?? d);
+};
 
 const catCount = (c: ModelCategory) => MODELS.filter((m) => m.cat === c).length;
 const faNum = (n: number) => faDigits(n.toLocaleString("en-US"));
@@ -56,6 +59,7 @@ function SizingPanel({
   onClose: () => void;
 }) {
   const m = MODELS[index];
+  if (!m) return null;
   const r = sizeFor(m, users);
   const cat = CATEGORY_MAP[m.cat];
   return (
@@ -93,6 +97,13 @@ function SizingPanel({
             </span>
           </div>
           <h2 className="mt-2 text-xl font-black">{m.fa}</h2>
+          <p
+            className="mt-0.5 font-mono text-sm font-bold text-accent"
+            dir="ltr"
+            style={{ textShadow: `0 0 18px color-mix(in oklab, ${m.accent} 55%, transparent)` }}
+          >
+            {m.en}
+          </p>
           <p className="text-xs text-primary mt-0.5">{m.tagFa}</p>
         </div>
         <button
@@ -241,16 +252,16 @@ function HardwarePage() {
     setSel((s) => {
       const list = visibleIdx;
       if (!list.length) return null;
-      if (s === null) return list[0];
+      if (s === null) return list[0] ?? null;
       const p = list.indexOf(s);
-      if (p === -1) return list[0];
-      return list[(p + dir + list.length) % list.length];
+      if (p === -1) return list[0] ?? null;
+      return list[(p + dir + list.length) % list.length] ?? null;
     });
   };
   const toggleCat = (c: ModelCategory) => {
     const next = catFilter === c ? null : c;
     setCatFilter(next);
-    setSel((s) => (s !== null && next !== null && MODELS[s].cat !== next ? null : s));
+    setSel((s) => (s !== null && next !== null && MODELS[s]?.cat !== next ? null : s));
   };
 
   return (
@@ -267,7 +278,12 @@ function HardwarePage() {
               </div>
             }
           >
-            <GalaxyScene focus={sel ?? -1} catFilter={catFilter} onPick={pick} />
+            <GalaxyScene
+              focus={sel ?? -1}
+              catFilter={catFilter}
+              onPick={pick}
+              onCorePick={toggleCat}
+            />
           </Suspense>
         </ClientOnly>
 
@@ -336,8 +352,9 @@ function HardwarePage() {
               })}
             </div>
             <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
-              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ کاربرد هر
-              مدل داخل پنل همان ستاره نوشته شده است.
+              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ با نگه‌داشتن
+              نشانگر روی هستهٔ هر کهکشان، نام دسته را می‌بینید و کلیک روی هسته هم به همان کهکشان
+              می‌برد. کاربرد هر مدل داخل پنل همان ستاره نوشته شده است.
             </p>
           </div>
         </div>
@@ -457,10 +474,20 @@ function HardwarePage() {
                             className="h-2 w-2 rounded-full shrink-0"
                             style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
                           />
-                          <span className="font-bold">{m.fa}</span>
-                          <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
-                            {m.params}
-                          </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold">{m.fa}</span>
+                              <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+                                {m.params}
+                              </span>
+                            </div>
+                            <span
+                              className="font-mono text-[10px] text-accent/90"
+                              dir="ltr"
+                            >
+                              {m.en}
+                            </span>
+                          </div>
                         </div>
                       </td>
                       <td className="p-3.5 whitespace-nowrap">

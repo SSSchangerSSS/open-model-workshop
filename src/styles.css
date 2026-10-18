@@ -526,6 +526,157 @@ html.intro-done #boot-overlay {
   overflow: hidden;
 }
 
+/* ---------- INTERACTIVE UPLIFT (home / services / showcase / contact) ---------- */
+
+/* Edge fade for marquees and tickers */
+.marquee-mask {
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+
+/* Hover: card lifts with a green under-glow */
+.lift {
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+.lift:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in oklab, var(--primary) 55%, var(--border));
+  box-shadow:
+    0 24px 60px -28px color-mix(in oklab, var(--primary) 65%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--primary) 25%, transparent) inset;
+}
+
+/* Hover: a scanline sweeps down the card */
+.scan-hover::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: -40%;
+  height: 34%;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    color-mix(in oklab, var(--primary) 14%, transparent),
+    transparent
+  );
+}
+.scan-hover:hover::after {
+  animation: scan-sweep 0.9s ease-out 1;
+}
+@keyframes scan-sweep {
+  0% {
+    opacity: 1;
+    top: -40%;
+  }
+  100% {
+    opacity: 0;
+    top: 110%;
+  }
+}
+
+/* Rack load meters (services cards footer) */
+.meter-bar {
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--primary) 18%, transparent);
+  overflow: hidden;
+  position: relative;
+}
+.meter-bar::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  width: 34%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: meter-run 2.8s linear infinite;
+}
+@keyframes meter-run {
+  from {
+    left: -34%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+/* Pipeline simulator steps */
+.sim-step {
+  transition:
+    color 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  opacity: 0.45;
+}
+.sim-step.done,
+.sim-step.active {
+  opacity: 1;
+}
+.sim-step.active {
+  color: var(--primary);
+  transform: translateX(-3px);
+}
+.sim-check {
+  animation: sim-pop 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.4) 1;
+}
+@keyframes sim-pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Compare slider (manual vs automated) */
+.compare-wrap {
+  touch-action: none;
+  user-select: none;
+}
+.compare-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--primary);
+  box-shadow: 0 0 18px var(--primary);
+  z-index: 5;
+}
+.compare-knob {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  cursor: ew-resize;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--primary) 60%, transparent);
+  background: color-mix(in oklab, var(--background) 85%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 24px color-mix(in oklab, var(--primary) 55%, transparent);
+  transition: transform 0.2s ease;
+}
+.compare-knob:hover,
+.compare-knob:focus-visible {
+  transform: translate(-50%, -50%) scale(1.12);
+}
+.compare-side {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Live clock + channel cards */
+.time-blink {
+  animation: blink 2s steps(1) infinite;
+}
+
 @media (max-width: 640px) {
   .datacenter-copy {
     top: 24px;

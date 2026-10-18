@@ -206,6 +206,18 @@ html {
   touch-action: pan-y;
 }
 
+/* Hardware showroom viewport (3D ring hall) */
+.hw-viewport {
+  position: relative;
+  z-index: 10;
+  height: calc(100svh - 64px);
+  min-height: 560px;
+  overflow: hidden;
+}
+.hw-viewport canvas {
+  touch-action: pan-y;
+}
+
 /* Hero overlays (first viewport of home) — fill exactly the space under the header */
 .hero-over-scene {
   position: relative;

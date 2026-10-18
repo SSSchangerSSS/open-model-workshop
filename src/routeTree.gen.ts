@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as HardwareRouteImport } from './routes/hardware'
 import { Route as ServicesRouteImport } from './routes/services'
+import { Route as ShowcaseRouteImport } from './routes/showcase'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -23,40 +25,58 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HardwareRoute = HardwareRouteImport.update({
+  id: '/hardware',
+  path: '/hardware',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
   path: '/services',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShowcaseRoute = ShowcaseRouteImport.update({
+  id: '/showcase',
+  path: '/showcase',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
+  '/showcase': typeof ShowcaseRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
+  '/showcase': typeof ShowcaseRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/contact': typeof ContactRoute
+  '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
+  '/showcase': typeof ShowcaseRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contact' | '/services'
+  fullPaths: '/' | '/contact' | '/hardware' | '/services' | '/showcase'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contact' | '/services'
-  id: '__root__' | '/' | '/contact' | '/services'
+  to: '/' | '/contact' | '/hardware' | '/services' | '/showcase'
+  id: '__root__' | '/' | '/contact' | '/hardware' | '/services' | '/showcase'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ContactRoute: typeof ContactRoute
+  HardwareRoute: typeof HardwareRoute
   ServicesRoute: typeof ServicesRoute
+  ShowcaseRoute: typeof ShowcaseRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -75,11 +95,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hardware': {
+      id: '/hardware'
+      path: '/hardware'
+      fullPath: '/hardware'
+      preLoaderRoute: typeof HardwareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/services': {
       id: '/services'
       path: '/services'
       fullPath: '/services'
       preLoaderRoute: typeof ServicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/showcase': {
+      id: '/showcase'
+      path: '/showcase'
+      fullPath: '/showcase'
+      preLoaderRoute: typeof ShowcaseRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -88,7 +122,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContactRoute: ContactRoute,
+  HardwareRoute: HardwareRoute,
   ServicesRoute: ServicesRoute,
+  ShowcaseRoute: ShowcaseRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

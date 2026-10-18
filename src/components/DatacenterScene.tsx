@@ -139,7 +139,7 @@ function Ceiling({ p }: { p: Palette }) {
 /* Server racks — procedural LED panel shader + hover/pick/proximity   */
 /* ------------------------------------------------------------------ */
 
-const RACK_PANEL_VERT = /* glsl */ `
+export const RACK_PANEL_VERT = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -147,7 +147,7 @@ const RACK_PANEL_VERT = /* glsl */ `
   }
 `;
 
-const RACK_PANEL_FRAG = /* glsl */ `
+export const RACK_PANEL_FRAG = /* glsl */ `
   varying vec2 vUv;
   uniform float uTime;
   uniform float uSeed;
@@ -215,24 +215,43 @@ const INFRA_LABELS = [
 
 const FA_RE = /[\u0600-\u06FF]/;
 
-function makeLabelTexture(text: string, green: string, matrix: boolean): THREE.CanvasTexture {
+/**
+ * Rasterize a label into a canvas texture.
+ * The canvas width is sized from the MEASURED text width so long Persian
+ * strings (e.g. "هسته هوش مصنوعی · آماده استقرار") are never clipped —
+ * a fixed 512px canvas used to cut them on both sides.
+ */
+export function makeLabelTexture(
+  text: string,
+  color: string,
+  matrix: boolean,
+  px = 40,
+): THREE.CanvasTexture {
   const c = document.createElement("canvas");
-  c.width = 512;
-  c.height = 96;
+  const probe = c.getContext("2d");
+  const fontSpec = matrix
+    ? `bold ${px}px "Vazir Matrix", "JetBrains Mono", monospace`
+    : `bold ${px}px 'JetBrains Mono', monospace`;
+  let textW = 0;
+  if (probe) {
+    probe.font = fontSpec;
+    textW = probe.measureText(text).width;
+  }
+  c.width = Math.min(2048, Math.max(192, Math.ceil(textW) + 32));
+  c.height = Math.ceil(px * 2.4);
   const ctx = c.getContext("2d");
   if (ctx) {
-    ctx.clearRect(0, 0, 512, 96);
+    ctx.clearRect(0, 0, c.width, c.height);
     ctx.direction = FA_RE.test(text) ? "rtl" : "ltr";
-    ctx.font = matrix
-      ? `bold 40px "Vazir Matrix", "JetBrains Mono", monospace`
-      : "bold 40px 'JetBrains Mono', monospace";
+    ctx.font = fontSpec;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = green;
-    ctx.fillText(text, 256, 50);
+    ctx.fillStyle = color;
+    ctx.fillText(text, c.width / 2, c.height / 2 + px * 0.06);
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
   return t;
 }
 
@@ -404,15 +423,20 @@ function Racks({
               roughness={0.35}
             />
           </mesh>
-          {r.label && (
-            <mesh
-              position={[r.pos[0] > 0 ? -0.59 : 0.59, 2.02, 0]}
-              rotation-y={r.pos[0] > 0 ? -Math.PI / 2 : Math.PI / 2}
-            >
-              <planeGeometry args={[1.05, 0.2]} />
-              <meshBasicMaterial map={textures.get(r.label)!} transparent toneMapped={false} />
-            </mesh>
-          )}
+          {r.label &&
+            (() => {
+              const tex = textures.get(r.label)!;
+              const w = Math.min(1.35, 0.2 * (tex.image.width / tex.image.height));
+              return (
+                <mesh
+                  position={[r.pos[0] > 0 ? -0.59 : 0.59, 2.02, 0]}
+                  rotation-y={r.pos[0] > 0 ? -Math.PI / 2 : Math.PI / 2}
+                >
+                  <planeGeometry args={[w, 0.2]} />
+                  <meshBasicMaterial map={tex} transparent toneMapped={false} />
+                </mesh>
+              );
+            })()}
           {hover === i && (
             <Html
               position={[0, 1.72, 0]}
@@ -526,16 +550,26 @@ function ShowcaseCore({
           </div>
         </Html>
       )}
-      {/* spec plate */}
-      <mesh position={[0, -0.82, 1.2]} rotation-x={-0.35}>
-        <planeGeometry args={[2.1, 0.5]} />
-        <meshBasicMaterial
-          map={makeLabelTexture("هسته هوش مصنوعی · آماده استقرار", p.green, matrixFont)}
-          transparent
-          toneMapped={false}
-        />
-      </mesh>
+      {/* spec plate — texture sized from measured text so the full sentence shows */}
+      <SpecPlate p={p} matrixFont={matrixFont} />
     </group>
+  );
+}
+
+/** Floating spec plate under the AI core — sized to the measured text. */
+function SpecPlate({ p, matrixFont }: { p: Palette; matrixFont: boolean }) {
+  const tex = useMemo(
+    () => makeLabelTexture("هسته هوش مصنوعی · آماده استقرار", p.green, matrixFont, 30),
+    [p, matrixFont],
+  );
+  useEffect(() => () => tex.dispose(), [tex]);
+  const aspect = tex.image.width / tex.image.height;
+  const w = Math.min(3.2, 0.5 * aspect);
+  return (
+    <mesh position={[0, -0.82, 1.2]} rotation-x={-0.35}>
+      <planeGeometry args={[w, 0.5]} />
+      <meshBasicMaterial map={tex} transparent toneMapped={false} />
+    </mesh>
   );
 }
 

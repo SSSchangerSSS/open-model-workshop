@@ -32,6 +32,8 @@
 | 🖥️ **استقرار سرور هوش مصنوعی**      | Docker، درایور و CUDA، مانیتورینگ، بکاپ‌گیری و امنیت — آماده بهره‌برداری             |
 | 🔧 **بستن سخت‌افزار GPU**           | انتخاب و اسمبل قطعات متناسب با مدل موردنظر و بودجه مشتری                             |
 | 🧠 **اجرای مدل‌های Open-Weight**    | Llama، Qwen، DeepSeek، Mistral با vLLM، Ollama و llama.cpp                           |
+| 🏬 **سالن سخت‌افزار سه‌بعدی**        | گشت‌وگذار بین سرورهای مدل‌ها؛ محاسبهٔ زندهٔ GPU/RAM و قیمت دلاری بر اساس کاربران همزمان |
+| 📚 **نمونه‌کارهای واقعی**           | ۱۰ معماری n8n/Flowise با اعداد و نتایج واقعی کسب‌وکارها                               |
 
 ## 🛠️ پشته فناوری
 
@@ -40,7 +42,7 @@
 | **فریم‌ورک**         | TanStack Start (SSR) + React 19 + TanStack Router / Query  |
 | **زبان**             | TypeScript 5.8 (حالت strict)                               |
 | **بیلد**             | Vite 8 + Nitro 3 (هدف پیش‌فرض Cloudflare Workers)          |
-| **استایل**           | Tailwind CSS 4 + tw-animate-css + فونت وزیرمتن (Vazirmatn) |
+| **استایل**           | Tailwind CSS 4 + tw-animate-css + فونت اختصاصی Vazir Matrix |
 | **کامپوننت‌ها**      | shadcn-style UI روی Radix UI + lucide-react                |
 | **فرم و اعتبارسنجی** | react-hook-form + zod                                      |
 | **نمودار و سه‌بعدی** | Recharts + Three.js (@react-three/fiber, drei)             |
@@ -60,8 +62,10 @@
 │   ├── lib/               # توابع کمکی
 │   ├── routes/            # مسیرهای سایت (TanStack Router)
 │   │   ├── __root.tsx     # قالب ریشه (هدر/فوتر)
-│   │   ├── index.tsx      # صفحه نخست
+│   │   ├── index.tsx      # صفحه نخست (راهروی سه‌بعدی دیتاسنتر)
 │   │   ├── services.tsx   # صفحه خدمات
+│   │   ├── hardware.tsx   # سالن سه‌بعدی سخت‌افزار + محاسبهٔ GPU/قیمت
+│   │   ├── showcase.tsx   # نمونه‌کارهای واقعی n8n و Flowise
 │   │   └── contact.tsx    # صفحه تماس
 │   ├── server.ts          # ورودی SSR (پوشش خطاهای سرور)
 │   └── styles.css         # استایل‌های سراسری (Tailwind 4)

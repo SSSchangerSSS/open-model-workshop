@@ -5,6 +5,8 @@ import { Intro } from "./Intro";
 const nav = [
   { to: "/", label: "خانه" },
   { to: "/services", label: "خدمات" },
+  { to: "/hardware", label: "سخت‌افزار" },
+  { to: "/showcase", label: "نمونه‌کارها" },
   { to: "/contact", label: "تماس" },
 ] as const;
 
@@ -21,7 +23,7 @@ export function Shell({ children }: { children: ReactNode }) {
             &gt; هوش برتر_
             <span className="cursor-blink" aria-hidden />
           </Link>
-          <nav className="flex gap-6 text-sm">
+          <nav className="flex flex-wrap justify-end gap-x-4 gap-y-1 md:gap-6 text-sm">
             {nav.map((n) => (
               <Link
                 key={n.to}

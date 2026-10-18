@@ -1,12 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Manual trigger from the Actions tab.
-  # After GitHub Pages is activated for this repository, uncomment the
-  # "push" block below so every push to main deploys automatically.
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read

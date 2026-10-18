@@ -26,27 +26,27 @@
 
 ## 🧩 خدمات پوشش داده‌شده در سایت
 
-| خدمت | توضیح |
-|------|-------|
+| خدمت                                | توضیح                                                                                |
+| ----------------------------------- | ------------------------------------------------------------------------------------ |
 | 🤖 **اتوماسیون و ایجنت‌های هوشمند** | اتصال CRM، تلگرام، ایمیل و API‌ها با n8n؛ چت‌بات‌های RAG روی اسناد سازمان با Flowise |
-| 🖥️ **استقرار سرور هوش مصنوعی** | Docker، درایور و CUDA، مانیتورینگ، بکاپ‌گیری و امنیت — آماده بهره‌برداری |
-| 🔧 **بستن سخت‌افزار GPU** | انتخاب و اسمبل قطعات متناسب با مدل موردنظر و بودجه مشتری |
-| 🧠 **اجرای مدل‌های Open-Weight** | Llama، Qwen، DeepSeek، Mistral با vLLM، Ollama و llama.cpp |
+| 🖥️ **استقرار سرور هوش مصنوعی**      | Docker، درایور و CUDA، مانیتورینگ، بکاپ‌گیری و امنیت — آماده بهره‌برداری             |
+| 🔧 **بستن سخت‌افزار GPU**           | انتخاب و اسمبل قطعات متناسب با مدل موردنظر و بودجه مشتری                             |
+| 🧠 **اجرای مدل‌های Open-Weight**    | Llama، Qwen، DeepSeek، Mistral با vLLM، Ollama و llama.cpp                           |
 
 ## 🛠️ پشته فناوری
 
-| لایه | فناوری |
-|------|--------|
-| **فریم‌ورک** | TanStack Start (SSR) + React 19 + TanStack Router / Query |
-| **زبان** | TypeScript 5.8 (حالت strict) |
-| **بیلد** | Vite 8 + Nitro 3 (هدف پیش‌فرض Cloudflare Workers) |
-| **استایل** | Tailwind CSS 4 + tw-animate-css + فونت وزیرمتن (Vazirmatn) |
-| **کامپوننت‌ها** | shadcn-style UI روی Radix UI + lucide-react |
-| **فرم و اعتبارسنجی** | react-hook-form + zod |
-| **نمودار و سه‌بعدی** | Recharts + Three.js (@react-three/fiber, drei) |
-| **تست** | Vitest + Testing Library + jsdom |
-| **کیفیت کد** | ESLint 9 + Prettier + eslint-plugin-react-hooks |
-| **مدیریت پکیج** | Bun (قفل‌شده با `bun.lock`) |
+| لایه                 | فناوری                                                     |
+| -------------------- | ---------------------------------------------------------- |
+| **فریم‌ورک**         | TanStack Start (SSR) + React 19 + TanStack Router / Query  |
+| **زبان**             | TypeScript 5.8 (حالت strict)                               |
+| **بیلد**             | Vite 8 + Nitro 3 (هدف پیش‌فرض Cloudflare Workers)          |
+| **استایل**           | Tailwind CSS 4 + tw-animate-css + فونت وزیرمتن (Vazirmatn) |
+| **کامپوننت‌ها**      | shadcn-style UI روی Radix UI + lucide-react                |
+| **فرم و اعتبارسنجی** | react-hook-form + zod                                      |
+| **نمودار و سه‌بعدی** | Recharts + Three.js (@react-three/fiber, drei)             |
+| **تست**              | Vitest + Testing Library + jsdom                           |
+| **کیفیت کد**         | ESLint 9 + Prettier + eslint-plugin-react-hooks            |
+| **مدیریت پکیج**      | Bun (قفل‌شده با `bun.lock`)                                |
 
 ## 📂 ساختار پروژه
 
@@ -104,16 +104,16 @@ npm run dev
 
 ## ⚙️ اسکریپت‌های در دسترس
 
-| اسکریپت | دستور (Bun) | کارکرد |
-|---------|-------------|--------|
-| توسعه | `bun run dev` | سرور توسعه با HMR |
-| بیلد پروداکشن | `bun run build` | بیلد SSR (هدف Cloudflare) |
-| بیلد توسعه | `bun run build:dev` | بیلد در حالت development |
-| پیش‌نمایش بیلد | `bun run preview` | اجرای محلی خروجی بیلد |
-| تست | `bun run test` | اجرای یک‌باره تست‌ها با Vitest |
-| تست مداوم | `bun run test:watch` | تست‌ها در حالت watch |
-| لینت | `bun run lint` | بررسی کیفیت کد با ESLint |
-| فرمت | `bun run format` | یکدست‌سازی کد با Prettier |
+| اسکریپت        | دستور (Bun)          | کارکرد                         |
+| -------------- | -------------------- | ------------------------------ |
+| توسعه          | `bun run dev`        | سرور توسعه با HMR              |
+| بیلد پروداکشن  | `bun run build`      | بیلد SSR (هدف Cloudflare)      |
+| بیلد توسعه     | `bun run build:dev`  | بیلد در حالت development       |
+| پیش‌نمایش بیلد | `bun run preview`    | اجرای محلی خروجی بیلد          |
+| تست            | `bun run test`       | اجرای یک‌باره تست‌ها با Vitest |
+| تست مداوم      | `bun run test:watch` | تست‌ها در حالت watch           |
+| لینت           | `bun run lint`       | بررسی کیفیت کد با ESLint       |
+| فرمت           | `bun run format`     | یکدست‌سازی کد با Prettier      |
 
 ## 📦 استقرار (Deployment)
 

@@ -635,10 +635,24 @@ html.intro-done #boot-overlay {
   }
 }
 
-/* Compare slider (manual vs automated) */
+/* Compare slider (manual vs automated) — RTL: قبل right, بعد left */
 .compare-wrap {
-  touch-action: none;
+  /* pan-y keeps vertical page scroll working on touch; horizontal drags still drag */
+  touch-action: pan-y;
   user-select: none;
+}
+/* opaque side panels — no bleed-through of the other layer */
+.compare-manual-bg {
+  background: #0a0d09;
+}
+.compare-auto-bg {
+  background:
+    radial-gradient(
+      120% 90% at 15% 0%,
+      color-mix(in oklab, var(--primary) 18%, transparent),
+      transparent 55%
+    ),
+    #050c07;
 }
 .compare-divider {
   position: absolute;

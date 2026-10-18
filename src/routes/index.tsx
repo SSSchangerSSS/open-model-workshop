@@ -119,7 +119,10 @@ function Index() {
           <div className="marquee-mask">
             <div className="flex w-max animate-marquee gap-12 font-mono text-xl text-muted-foreground">
               {[...tools, ...tools].map((t, i) => (
-                <span key={i} className="hover:text-primary hover:[text-shadow:0_0_18px_var(--primary)] transition">
+                <span
+                  key={i}
+                  className="hover:text-primary hover:[text-shadow:0_0_18px_var(--primary)] transition"
+                >
                   {t}
                 </span>
               ))}
@@ -327,9 +330,13 @@ function Bento({
   );
 }
 
-/** Manual vs automated — drag the divider and watch the day transform. */
+/** Manual vs automated — drag the divider and watch the day transform.
+ *  RTL-correct: «قبل» (BEFORE) lives on the RIGHT half, «بعد» (AFTER) on the
+ *  LEFT half. Each side's content is anchored inside its own fixed half, on a
+ *  fully opaque panel, so nothing bleeds through the other layer and nothing
+ *  gets hidden under the divider while dragging. */
 function CompareSlider() {
-  const [pos, setPos] = useState(55);
+  const [pos, setPos] = useState(50);
   const wrap = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
 
@@ -345,7 +352,7 @@ function CompareSlider() {
     <div
       ref={wrap}
       dir="ltr"
-      className="compare-wrap rack-card relative h-[430px] md:h-[360px] cursor-ew-resize"
+      className="compare-wrap rack-card relative h-[520px] md:h-[380px] cursor-ew-resize"
       onPointerDown={(e) => {
         dragging.current = true;
         (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -355,28 +362,42 @@ function CompareSlider() {
       onPointerUp={() => (dragging.current = false)}
       onPointerCancel={() => (dragging.current = false)}
     >
-      {/* BASE layer — manual work (dim, red-ish) */}
+      {/* BASE — BEFORE (قبل): manual work, opaque, anchored in the RIGHT half */}
       <CompareSide
         tone="manual"
         title="فرایند دستی"
         sub="BEFORE"
         rows={compareManual}
+        side="right"
       />
-      {/* TOP layer — automated (green glow), revealed to the right of the divider */}
-      <div className="compare-side" style={{ clipPath: `inset(0 0 0 ${pos}%)` }}>
-        <CompareSide tone="auto" title="با اتوماسیون هوش برتر" sub="AFTER" rows={compareAuto} />
+
+      {/* TOP — AFTER (بعد): automated, opaque, revealed to the LEFT of the divider */}
+      <div className="compare-side" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+        <CompareSide
+          tone="auto"
+          title="با اتوماسیون هوش برتر"
+          sub="AFTER"
+          rows={compareAuto}
+          side="left"
+        />
       </div>
 
       {/* divider + knob */}
       <div className="compare-divider pointer-events-none" style={{ left: `${pos}%` }} />
       <button
         type="button"
-        aria-label="جابه‌جایی مقایسه"
+        role="slider"
+        aria-label="جابه‌جایی مقایسهٔ قبل و بعد"
+        aria-valuemin={12}
+        aria-valuemax={88}
+        aria-valuenow={Math.round(pos)}
         className="compare-knob h-11 w-11 grid place-items-center text-primary"
-        style={{ left: `${pos}%` }}
+        style={{ left: `${pos}%`, touchAction: "none" }}
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft") setPos((p) => Math.max(12, p - 4));
           if (e.key === "ArrowRight") setPos((p) => Math.min(88, p + 4));
+          if (e.key === "Home") setPos(12);
+          if (e.key === "End") setPos(88);
         }}
       >
         <MoveHorizontal size={20} />
@@ -390,76 +411,96 @@ function CompareSide({
   title,
   sub,
   rows,
+  side,
 }: {
   tone: "manual" | "auto";
   title: string;
   sub: string;
   rows: string[][];
+  side: "left" | "right";
 }) {
   const auto = tone === "auto";
+  const left = side === "left";
   return (
-    <div
-      className={`absolute inset-0 flex flex-col p-6 md:p-8 ${
-        auto ? "bg-primary/10 backdrop-blur-[2px]" : "bg-background/80"
-      }`}
-      dir="rtl"
-    >
-      <div className="flex items-center justify-between">
-        <div>
-          <p
-            className={`font-mono text-[10px] tracking-widest ${auto ? "text-primary" : "text-muted-foreground"}`}
-            dir="ltr"
-          >
-            {sub}
-          </p>
-          <h3 className={`mt-1 text-xl font-black ${auto ? "text-primary" : "text-foreground/80"}`}>
-            {title}
-          </h3>
-        </div>
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${
-            auto ? "status-dot" : "bg-muted-foreground/40"
-          }`}
-          aria-hidden
-        />
-      </div>
-      <div className="mt-5 grid gap-2.5">
-        {rows.map(([t, d], i) => (
-          <div
-            key={i}
-            className={`flex items-center gap-3 rounded-md border px-3.5 py-3 ${
-              auto
-                ? "border-primary/35 bg-primary/8"
-                : "border-border/70 bg-muted/20 opacity-70"
-            }`}
-            style={{ animationDelay: `${i * 90}ms` }}
-          >
-            <span
-              className={`shrink-0 grid place-items-center h-6 w-6 rounded-full border ${
-                auto ? "border-primary/60 text-primary" : "border-border text-muted-foreground"
-              }`}
-            >
-              {auto ? <Check size={13} /> : <X size={13} />}
-            </span>
-            <div className="min-w-0">
-              <p className={`text-sm font-bold truncate ${auto ? "" : "line-through decoration-muted-foreground/50"}`}>
-                {t}
-              </p>
-              <p className={`text-[11px] mt-0.5 ${auto ? "text-primary/85" : "text-muted-foreground"}`}>
-                {d}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <p
-        className={`mt-auto pt-4 font-mono text-[10px] tracking-widest ${
-          auto ? "text-primary" : "text-muted-foreground/60"
+    <div className={`absolute inset-0 ${auto ? "compare-auto-bg" : "compare-manual-bg"}`} dir="rtl">
+      {/* content pinned to this side's own half — never under the divider */}
+      <div
+        className={`absolute top-0 bottom-0 w-[46%] flex flex-col py-5 md:py-7 ${
+          left ? "left-0 pl-5 md:pl-7" : "right-0 pr-5 md:pr-7"
         }`}
-        dir="ltr"
       >
-        {auto ? "> uptime 24/7 — zero hand-work" : "> waiting for human…"}
-      </p>
+        <div className={`flex items-center justify-between ${left ? "flex-row-reverse" : ""}`}>
+          <div>
+            <p className={`flex items-center gap-2 ${left ? "flex-row-reverse" : ""}`}>
+              <span
+                className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                  auto ? "bg-primary/25 text-primary" : "bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                {left ? "بعد" : "قبل"}
+              </span>
+              <span
+                className="font-mono text-[10px] tracking-widest text-muted-foreground"
+                dir="ltr"
+              >
+                {sub}
+              </span>
+            </p>
+            <h3
+              className={`mt-1 text-base md:text-xl font-black ${auto ? "text-primary" : "text-foreground/80"}`}
+            >
+              {title}
+            </h3>
+          </div>
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${auto ? "status-dot" : "bg-muted-foreground/40"}`}
+            aria-hidden
+          />
+        </div>
+        <div className="mt-4 md:mt-5 grid gap-2 md:gap-2.5">
+          {rows.map(([t, d], i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 ${
+                auto ? "border-primary/35 bg-primary/10" : "border-border/70 bg-muted/20 opacity-70"
+              } ${left ? "flex-row-reverse" : ""}`}
+              style={{ animationDelay: `${i * 90}ms` }}
+            >
+              <span
+                className={`shrink-0 grid place-items-center h-6 w-6 rounded-full border ${
+                  auto ? "border-primary/60 text-primary" : "border-border text-muted-foreground"
+                }`}
+              >
+                {auto ? <Check size={13} /> : <X size={13} />}
+              </span>
+              <div className="min-w-0">
+                <p
+                  className={`text-xs md:text-sm font-bold leading-snug ${
+                    auto ? "" : "line-through decoration-muted-foreground/50"
+                  }`}
+                >
+                  {t}
+                </p>
+                <p
+                  className={`text-[10px] md:text-[11px] mt-0.5 leading-snug ${
+                    auto ? "text-primary/85" : "text-muted-foreground"
+                  }`}
+                >
+                  {d}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p
+          className={`mt-auto pt-3 font-mono text-[9px] md:text-[10px] tracking-widest text-right ${
+            auto ? "text-primary" : "text-muted-foreground/60"
+          }`}
+          dir="ltr"
+        >
+          {auto ? "> uptime 24/7 — zero hand-work" : "> waiting for human…"}
+        </p>
+      </div>
     </div>
   );
 }
@@ -468,9 +509,7 @@ function CompareSide({
 function FaqBlock() {
   const [q, setQ] = useState("");
   const norm = (s: string) => s.replace(/\u200c/g, " ").toLowerCase();
-  const hits = faq.filter(
-    ([qa, aa]) => norm(qa).includes(norm(q)) || norm(aa).includes(norm(q)),
-  );
+  const hits = faq.filter(([qa, aa]) => norm(qa).includes(norm(q)) || norm(aa).includes(norm(q)));
   return (
     <div className="mt-8">
       <label className="relative block">

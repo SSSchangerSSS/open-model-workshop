@@ -13,6 +13,8 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
   --font-sans: "Vazirmatn", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
@@ -28,6 +30,13 @@
   --muted-foreground: oklch(0.7 0.02 160);
   --accent: oklch(0.78 0.15 75);
   --border: oklch(0.32 0.03 160);
+  --scene-void: #040a08;
+  --scene-metal: #263a33;
+  --scene-green: #67ff9c;
+  --scene-cyan: #71cdd1;
+  --scene-light: #d9ffe9;
+  --scene-tile: #111f19;
+  --terminal-shadow: 0 24px 80px color-mix(in oklab, var(--background) 85%, transparent);
 }
 
 @layer base {
@@ -80,3 +89,21 @@ html{scroll-behavior:smooth}
 }
 @keyframes fly { from { transform: translateZ(-600px); } to { transform: translateZ(1900px); } }
 @keyframes introTitle { 0%,35% { opacity: 0; transform: scale(.7); } 60% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1.4); } }
+
+.datacenter { position: relative; height: 760px; max-height: calc(100svh - 64px); min-height: 640px; overflow: hidden; background: var(--scene-void); }
+.datacenter canvas { touch-action: pan-y; }
+.datacenter::after, .terminal-window::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 3px, color-mix(in oklab, var(--background) 12%, transparent) 4px); }
+.datacenter-copy { position: absolute; top: 38px; right: max(24px, calc((100% - 1152px) / 2)); pointer-events: none; }
+.datacenter-copy h1 { font-size: 48px; line-height: 1.2; }
+.datacenter-bottom { position: absolute; bottom: 26px; right: max(24px, calc((100% - 1152px) / 2)); left: max(24px, calc((100% - 1152px) / 2)); }
+.terminal-window { position: relative; border: 1px solid var(--border); border-radius: 8px; background: var(--background); box-shadow: var(--terminal-shadow); }
+.terminal-input { display: block; width: 100%; border-bottom: 1px solid var(--border); background: var(--muted); padding: 12px; outline: none; border-radius: 4px; }
+.terminal-input:focus { border-color: var(--primary); }
+.terminal-dots { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); box-shadow: 12px 0 var(--accent), 24px 0 var(--muted-foreground); margin-left: 24px; }
+.server-label { font-family: var(--font-mono); font-size: 13px; color: var(--primary); background: color-mix(in oklab, var(--background) 90%, transparent); border: 1px solid var(--border); padding: 6px 12px; border-radius: 3px; white-space: nowrap; }
+.server-label[aria-pressed=true] { border-color: var(--primary); color: var(--foreground); }
+.connection-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; background: color-mix(in oklab, var(--background) 72%, transparent); backdrop-filter: blur(10px); }
+.connection-overlay > div { max-width: 520px; max-height: 90svh; overflow-y: auto; animation: terminal-open .3s ease-out; }
+@keyframes terminal-open { from { opacity: 0; transform: scaleY(.85) translateY(16px); } to { opacity: 1; transform: none; } }
+@media(max-width: 640px) { .datacenter { height: 780px; min-height: 700px; max-height: none; } .datacenter-copy { top: 28px; left: 24px; } .datacenter-copy h1 { font-size: 36px; } .datacenter-bottom { bottom: 20px; } }
+@media(prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } .reveal { opacity: 1; transform: none; } }

@@ -8,6 +8,8 @@ export const Route = createFileRoute("/services")({
       { name: "description", content: "اتوماسیون n8n، Flowise، استقرار سرور AI، بستن سخت‌افزار GPU و راه‌اندازی مدل‌های open-weight." },
       { property: "og:title", content: "خدمات هوش برتر" },
       { property: "og:description", content: "فهرست کامل خدمات اتوماسیون و زیرساخت هوش مصنوعی." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Services,

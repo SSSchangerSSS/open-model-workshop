@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
-import { ContainerScroll, Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
-import { Intro } from "@/components/Intro";
-import { CursorGlow, Tilt, Magnetic } from "@/components/Interactive";
-import hero from "@/assets/hero.jpg";
+import { Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
+import { lazy, Suspense } from "react";
+import { ClientOnly } from "@tanstack/react-router";
+import { Tilt } from "@/components/Interactive";
+
 import hardware from "@/assets/hardware.jpg";
 import workflow from "@/assets/workflow.jpg";
 import llm from "@/assets/llm.jpg";
+
+const Datacenter = lazy(() => import("@/components/Datacenter"));
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,6 +19,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور AI، بستن سخت‌افزار و راه‌اندازی مدل‌های open-weight." },
       { property: "og:title", content: "هوش برتر | اتوماسیون و زیرساخت هوش مصنوعی" },
       { property: "og:description", content: "هوش مصنوعی را روی سرور خودتان اجرا کنید و کارها را خودکار کنید." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
@@ -39,42 +44,10 @@ const faq = [
 function Index() {
   return (
     <Shell>
-      <Intro />
-      <CursorGlow />
       <ScrollProgress />
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-40 right-0 h-[600px] w-[600px] rounded-full bg-primary/20 blur-3xl animate-aurora" />
-        <div className="pointer-events-none absolute top-40 -left-40 h-[500px] w-[500px] rounded-full bg-accent/15 blur-3xl animate-aurora" />
-        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
-          <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-4 py-1.5 text-xs font-mono text-muted-foreground backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-primary animate-pulse" /> ظرفیت پذیرش پروژه جدید باز است
-            </span>
-          </Reveal>
-          <Reveal delay={100}>
-            <h1 className="mt-6 text-4xl md:text-7xl font-black leading-[1.15]">
-              کسب‌وکارتان را با <span className="text-gradient">هوش مصنوعی اختصاصی</span><br />خودکار کنید
-            </h1>
-          </Reveal>
-          <Reveal delay={200}>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              اتوماسیون با n8n، ایجنت‌های هوشمند با Flowise، بستن سرور GPU و اجرای مدل‌های open-weight روی زیرساخت خودتان — بدون وابستگی، با امنیت کامل داده.
-            </p>
-          </Reveal>
-          <Reveal delay={300}>
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Magnetic><Link to="/contact" className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold glow hover:scale-105 transition">مشاوره رایگان بگیرید</Link></Magnetic>
-              <Link to="/services" className="border bg-card/50 backdrop-blur px-8 py-4 rounded-xl hover:border-primary transition">مشاهده خدمات</Link>
-            </div>
-          </Reveal>
-          <Reveal delay={400}>
-            <ContainerScroll><Tilt max={6}><div className="mt-16 rounded-2xl border-beam glow overflow-hidden">
-              <img src={hero} alt="سرور هوش مصنوعی با کارت‌های گرافیک" width={1536} height={1024} className="w-full rounded-2xl" />
-            </div></Tilt></ContainerScroll>
-          </Reveal>
-        </div>
-      </section>
+      <ClientOnly fallback={<div className="datacenter flex items-center justify-center"><h1 className="text-4xl text-primary font-black">هوش برتر</h1></div>}>
+        <Suspense fallback={<div className="datacenter flex items-center justify-center"><p className="font-mono text-primary">&gt; booting matrix_</p></div>}><Datacenter /></Suspense>
+      </ClientOnly>
 
       {/* MARQUEE */}
       <section className="border-y bg-card/40 py-6 overflow-hidden" dir="ltr">

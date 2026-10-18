@@ -1,2 +1,5 @@
 - [x] Pro animated landing page with generated images
 - [x] Rename brand to هوش برتر (keep contact info unchanged)
+- [ ] Interactive Matrix datacenter with model servers and a seated specialist
+- [ ] Terminal-style contact experience; email destination awaits user's address
+- [ ] Verify scene rendering and contact flow on desktop and mobile

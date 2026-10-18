@@ -4,6 +4,7 @@ import { Html, Sparkles } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { scrollStore } from "@/lib/scroll-progress";
+import { tourZ } from "@/lib/tour";
 import { MatrixRain } from "./MatrixRain";
 
 export type SceneMode = "scroll" | "fixed";
@@ -27,15 +28,15 @@ export function getPalette(): Palette {
 }
 
 /* ------------------------------------------------------------------ */
-/* Camera                                                              */
+/* Camera — guided scroll tour + pointer parallax + speed FOV kick     */
 /* ------------------------------------------------------------------ */
 
-const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 const WALK_START = 12;
-const WALK_END = -50;
 
 function CameraRig({ mode, reduced }: { mode: SceneMode; reduced: boolean }) {
   const drift = useRef(0);
+  const prevP = useRef(0);
+  const fov = useRef(52);
   useFrame(({ camera, pointer, size }, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
     drift.current += dt;
@@ -47,9 +48,19 @@ function CameraRig({ mode, reduced }: { mode: SceneMode; reduced: boolean }) {
     let tz: number;
     let ty: number;
     if (mode === "scroll") {
-      const p = easeInOut(Math.min(1, Math.max(0, scrollStore.target)));
-      tz = THREE.MathUtils.lerp(WALK_START + (mobile ? 3 : 0), WALK_END, p);
+      const p = Math.min(1, Math.max(0, scrollStore.target));
+      tz = tourZ(p) + (mobile ? 3 : 0);
       ty = (mobile ? 2.05 : 1.7) + py * 0.3;
+      // scroll velocity widens the FOV a touch — a "speed" feeling
+      const vel = Math.abs(p - prevP.current);
+      prevP.current = p;
+      const targetFov = 52 + Math.min(8, vel * 380);
+      fov.current += (targetFov - fov.current) * (1 - Math.exp(-3.5 * dt));
+      const cam = camera as THREE.PerspectiveCamera;
+      if (Math.abs(cam.fov - fov.current) > 0.01) {
+        cam.fov = fov.current;
+        cam.updateProjectionMatrix();
+      }
     } else {
       tz = -8 + Math.sin(drift.current * 0.12) * 1.6;
       ty = 1.75 + py * 0.25;
@@ -125,7 +136,7 @@ function Ceiling({ p }: { p: Palette }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Server racks — procedural LED panel shader                          */
+/* Server racks — procedural LED panel shader + hover/pick/proximity   */
 /* ------------------------------------------------------------------ */
 
 const RACK_PANEL_VERT = /* glsl */ `
@@ -183,37 +194,42 @@ const RACK_PANEL_FRAG = /* glsl */ `
 `;
 
 export const MODEL_LABELS = [
-  { short: "QWEN", label: "QWEN · PERSIAN CHAT" },
-  { short: "LLAMA", label: "LLAMA · AGENTS" },
-  { short: "DEEPSEEK", label: "DEEPSEEK · REASONING" },
-  { short: "MISTRAL", label: "MISTRAL · FAST INFER" },
+  { short: "QWEN", label: "QWEN · چت فارسی" },
+  { short: "LLAMA", label: "LLAMA · ایجنت سازمانی" },
+  { short: "DEEPSEEK", label: "DEEPSEEK · استدلال" },
+  { short: "MISTRAL", label: "MISTRAL · استنتاج سریع" },
 ] as const;
 
 const INFRA_LABELS = [
   "N8N · WORKFLOWS",
   "FLOWISE · RAG",
   "GPU RIG · RTX 4090",
-  "STORAGE · NVME",
+  "ذخیره‌سازی · NVME",
   "COOLING · INROW",
   "QDRANT · VECTOR DB",
   "VLLM · SERVE",
-  "MONITORING",
+  "مانیتورینگ ۲۴/۷",
   "BACKUP · SNAPSHOT",
-  "SECURITY · FW",
+  "امنیت · فایروال",
 ];
 
-function makeLabelTexture(text: string, green: string): THREE.CanvasTexture {
+const FA_RE = /[\u0600-\u06FF]/;
+
+function makeLabelTexture(text: string, green: string, matrix: boolean): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = 512;
   c.height = 96;
   const ctx = c.getContext("2d");
   if (ctx) {
     ctx.clearRect(0, 0, 512, 96);
-    ctx.font = "bold 40px 'JetBrains Mono', monospace";
+    ctx.direction = FA_RE.test(text) ? "rtl" : "ltr";
+    ctx.font = matrix
+      ? `bold 40px "Vazir Matrix", "JetBrains Mono", monospace`
+      : "bold 40px 'JetBrains Mono', monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = green;
-    ctx.fillText(`[ ${text} ]`, 256, 50);
+    ctx.fillText(text, 256, 50);
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -225,6 +241,7 @@ type RackData = {
   seed: number;
   label: string | null;
   model: number;
+  no: number;
 };
 function buildRacks(): RackData[] {
   const racks: RackData[] = [];
@@ -243,23 +260,49 @@ function buildRacks(): RackData[] {
       } else if (i % 2 === 0) {
         label = INFRA_LABELS[infra++ % INFRA_LABELS.length];
       }
-      racks.push({ pos: [x, 1.16, z], seed: (side * 31 + i * 7.13) % 100, label, model });
+      racks.push({
+        pos: [x, 1.16, z],
+        seed: (side * 31 + i * 7.13) % 100,
+        label,
+        model,
+        no: racks.length + 1,
+      });
     }
   }
   return racks;
 }
 
-function Racks({ p, model, reduced }: { p: Palette; model: number; reduced: boolean }) {
+const RACK_FA = new Map<number, string>([
+  [-1, "رک زیرساخت — خاموش و بی‌خطر؛ فقط چراغ‌هایش می‌رقصند."],
+  [0, "رک Qwen — گفتگو و پردازش زبان فارسی. کلیک: انتخاب مدل"],
+  [1, "رک Llama — ایجنت‌های سازمانی. کلیک: انتخاب مدل"],
+  [2, "رک DeepSeek — استدلال و کدنویسی. کلیک: انتخاب مدل"],
+  [3, "رک Mistral — استنتاج سریع و محلی. کلیک: انتخاب مدل"],
+]);
+
+function Racks({
+  p,
+  model,
+  reduced,
+  matrixFont,
+  onPickModel,
+}: {
+  p: Palette;
+  model: number;
+  reduced: boolean;
+  matrixFont: boolean;
+  onPickModel?: (i: number) => void;
+}) {
   const racks = useMemo(buildRacks, []);
   const panelMats = useRef<THREE.ShaderMaterial[]>([]);
-  const labelMats = useRef<Map<string, THREE.CanvasTexture>>(new Map());
+  const [hover, setHover] = useState(-1);
 
   const textures = useMemo(() => {
     const map = new Map<string, THREE.CanvasTexture>();
     const all = [...MODEL_LABELS.map((m) => m.label), ...INFRA_LABELS];
-    for (const l of all) map.set(l, makeLabelTexture(l, p.green));
+    for (const l of all) map.set(l, makeLabelTexture(l, p.green, matrixFont));
     return map;
-  }, [p]);
+  }, [p, matrixFont]);
 
   useEffect(() => {
     const mats = panelMats.current;
@@ -267,18 +310,26 @@ function Racks({ p, model, reduced }: { p: Palette; model: number; reduced: bool
     return () => {
       mats.forEach((m) => m.dispose());
       texs.forEach((t) => t.dispose());
-      labelMats.current.clear();
     };
   }, [textures]);
 
-  useFrame((_, rawDelta) => {
+  useFrame(({ camera }, rawDelta) => {
     const dt = Math.min(rawDelta, 0.05);
+    const camZ = camera.position.z;
     for (let i = 0; i < panelMats.current.length; i++) {
       const m = panelMats.current[i];
       if (!m) continue;
-      m.uniforms.uTime.value += reduced ? 0 : dt;
+      if (!reduced) m.uniforms.uTime.value += dt;
       const rack = racks[i];
-      const target = rack && rack.model >= 0 && rack.model === model ? 1 : 0;
+      if (!rack) continue;
+      // combined highlight: selected model > hovered > proximity to walker
+      const dist = Math.abs(rack.pos[2] - camZ);
+      const prox = Math.max(0, 1 - dist / 10) * 0.45;
+      const target = Math.max(
+        rack.model >= 0 && rack.model === model ? 1 : 0,
+        hover === i ? 0.85 : 0,
+        reduced ? 0 : prox,
+      );
       m.uniforms.uBoost.value += (target - m.uniforms.uBoost.value) * (1 - Math.exp(-6 * dt));
     }
   });
@@ -287,7 +338,23 @@ function Racks({ p, model, reduced }: { p: Palette; model: number; reduced: bool
     <group>
       {racks.map((r, i) => (
         <group key={i} position={r.pos}>
-          <mesh castShadow>
+          <mesh
+            castShadow
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              setHover(i);
+              document.body.style.cursor = "pointer";
+            }}
+            onPointerOut={(e) => {
+              e.stopPropagation();
+              setHover((h) => (h === i ? -1 : h));
+              document.body.style.cursor = "auto";
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (r.model >= 0) onPickModel?.(r.model === model ? -1 : r.model);
+            }}
+          >
             <boxGeometry args={[1.15, 2.3, 0.95]} />
             <meshStandardMaterial
               attach="material-0"
@@ -346,6 +413,28 @@ function Racks({ p, model, reduced }: { p: Palette; model: number; reduced: bool
               <meshBasicMaterial map={textures.get(r.label)!} transparent toneMapped={false} />
             </mesh>
           )}
+          {hover === i && (
+            <Html
+              position={[0, 1.72, 0]}
+              center
+              zIndexRange={[15, 10]}
+              style={{ pointerEvents: "none" }}
+            >
+              <div className="rack-tip" dir="rtl">
+                <span className="font-mono text-[10px] text-primary" dir="ltr">
+                  RACK-{String(r.no).padStart(2, "0")}
+                </span>
+                <p className="mt-1 text-xs leading-relaxed text-foreground/90 whitespace-nowrap">
+                  {RACK_FA.get(r.model) ?? "رک زیرساخت — خاموش و بی‌خطر؛ فقط چراغ‌هایش می‌رقصند."}
+                </p>
+                {r.label && (
+                  <p className="mt-1 font-mono text-[10px] text-accent" dir="auto">
+                    {r.label}
+                  </p>
+                )}
+              </div>
+            </Html>
+          )}
         </group>
       ))}
     </group>
@@ -353,12 +442,23 @@ function Racks({ p, model, reduced }: { p: Palette; model: number; reduced: bool
 }
 
 /* ------------------------------------------------------------------ */
-/* Showcase — the "AI store" at the end of the corridor                */
+/* Showcase — the clickable "AI store" at the end of the corridor       */
 /* ------------------------------------------------------------------ */
 
-function ShowcaseCore({ p, reduced }: { p: Palette; reduced: boolean }) {
+function ShowcaseCore({
+  p,
+  reduced,
+  matrixFont,
+  onContact,
+}: {
+  p: Palette;
+  reduced: boolean;
+  matrixFont: boolean;
+  onContact?: () => void;
+}) {
   const core = useRef<THREE.Mesh>(null);
   const shell = useRef<THREE.Mesh>(null);
+  const [hover, setHover] = useState(false);
   useFrame((_, rawDelta) => {
     const dt = reduced ? 0 : Math.min(rawDelta, 0.05);
     if (core.current) {
@@ -381,13 +481,28 @@ function ShowcaseCore({ p, reduced }: { p: Palette; reduced: boolean }) {
         <ringGeometry args={[0.7, 1.0, 48]} />
         <meshBasicMaterial color={p.green} transparent opacity={0.55} toneMapped={false} />
       </mesh>
-      {/* energy core */}
-      <mesh ref={core}>
+      {/* energy core — clickable: opens the specialist channel */}
+      <mesh
+        ref={core}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHover(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHover(false);
+          document.body.style.cursor = "auto";
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onContact?.();
+        }}
+      >
         <icosahedronGeometry args={[0.52, 1]} />
         <meshStandardMaterial
           color={p.light}
           emissive={p.green}
-          emissiveIntensity={2.6}
+          emissiveIntensity={hover ? 4.2 : 2.6}
           toneMapped={false}
         />
       </mesh>
@@ -396,11 +511,26 @@ function ShowcaseCore({ p, reduced }: { p: Palette; reduced: boolean }) {
         <meshBasicMaterial color={p.cyan} wireframe transparent opacity={0.4} toneMapped={false} />
       </mesh>
       <pointLight position={[0, 0.2, 0]} intensity={9} distance={9} color={p.green} />
+      {hover && (
+        <Html
+          position={[0, 1.05, 0]}
+          center
+          zIndexRange={[15, 10]}
+          style={{ pointerEvents: "none" }}
+        >
+          <div className="rack-tip" dir="rtl">
+            <p className="text-xs font-bold text-primary whitespace-nowrap">هسته هوش مصنوعی</p>
+            <p className="mt-1 text-[11px] text-muted-foreground whitespace-nowrap">
+              کلیک کنید تا کانال ارتباطی باز شود
+            </p>
+          </div>
+        </Html>
+      )}
       {/* spec plate */}
       <mesh position={[0, -0.82, 1.2]} rotation-x={-0.35}>
         <planeGeometry args={[2.1, 0.5]} />
         <meshBasicMaterial
-          map={makeLabelTexture("AI CORE · READY TO DEPLOY", p.green)}
+          map={makeLabelTexture("هسته هوش مصنوعی · آماده استقرار", p.green, matrixFont)}
           transparent
           toneMapped={false}
         />
@@ -418,11 +548,17 @@ function World({
   mode,
   model,
   reduced,
+  matrixFont,
+  onPickModel,
+  onContact,
 }: {
   p: Palette;
   mode: SceneMode;
   model: number;
   reduced: boolean;
+  matrixFont: boolean;
+  onPickModel?: (i: number) => void;
+  onContact?: () => void;
 }) {
   return (
     <>
@@ -438,8 +574,14 @@ function World({
 
       <Floor p={p} />
       <Ceiling p={p} />
-      <Racks p={p} model={model} reduced={reduced} />
-      <ShowcaseCore p={p} reduced={reduced} />
+      <Racks
+        p={p}
+        model={model}
+        reduced={reduced}
+        matrixFont={matrixFont}
+        onPickModel={onPickModel}
+      />
+      <ShowcaseCore p={p} reduced={reduced} matrixFont={matrixFont} onContact={onContact} />
       <MatrixRain green={p.green} light={p.light} reduced={reduced} />
       <Sparkles
         count={90}
@@ -458,15 +600,38 @@ function World({
 export default function DatacenterScene({
   mode = "scroll",
   model = -1,
+  onPickModel,
+  onContact,
 }: {
   mode?: SceneMode;
   model?: number;
+  onPickModel?: (i: number) => void;
+  onContact?: () => void;
 }) {
   const [p] = useState(getPalette);
   const [reduced] = useState(
     () =>
       typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+  // Persian rack labels need the matrix font before canvas rasterization
+  const [matrixFont, setMatrixFont] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const done = () => alive && setMatrixFont(true);
+    try {
+      Promise.all([
+        document.fonts.load('700 40px "Vazir Matrix"'),
+        document.fonts.load('400 40px "Vazir Matrix"'),
+      ]).then(done, done);
+    } catch {
+      done();
+    }
+    const t = setTimeout(done, 3000); // fallback if fonts.ready stalls
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, []);
 
   return (
     <Canvas
@@ -482,7 +647,15 @@ export default function DatacenterScene({
           </Html>
         }
       >
-        <World p={p} mode={mode} model={model} reduced={reduced} />
+        <World
+          p={p}
+          mode={mode}
+          model={model}
+          reduced={reduced}
+          matrixFont={matrixFont}
+          onPickModel={onPickModel}
+          onContact={onContact}
+        />
       </Suspense>
       <EffectComposer>
         <Bloom mipmapBlur intensity={0.85} luminanceThreshold={0.18} luminanceSmoothing={0.25} />

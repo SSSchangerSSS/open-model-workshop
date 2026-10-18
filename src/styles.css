@@ -2,6 +2,29 @@
 @source "../src";
 @import "tw-animate-css";
 
+/* ------------------------------------------------------------------ */
+/* Vazir Matrix — custom Persian pixel/matrix font (built locally from */
+/* Vazirmatn via scripts/make_matrix_font.py, SIL OFL 1.1 derivative)  */
+/* ------------------------------------------------------------------ */
+@font-face {
+  font-family: "Vazir Matrix";
+  src:
+    url("./assets/fonts/VazirMatrix-Regular.woff2") format("woff2"),
+    url("./assets/fonts/VazirMatrix-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazir Matrix";
+  src:
+    url("./assets/fonts/VazirMatrix-Bold.woff2") format("woff2"),
+    url("./assets/fonts/VazirMatrix-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --radius-lg: var(--radius);
   --color-background: var(--background);
@@ -15,7 +38,7 @@
   --color-border: var(--border);
   --color-input: var(--border);
   --color-ring: var(--primary);
-  --font-sans: "Vazirmatn", system-ui, sans-serif;
+  --font-sans: "Vazir Matrix", "Vazirmatn", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
@@ -132,6 +155,9 @@
     transform: translateX(-50%);
   }
 }
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
 @keyframes float {
   50% {
     transform: translateY(-14px);
@@ -149,7 +175,7 @@ html {
   scroll-behavior: smooth;
 }
 @utility intro-fly {
-  animation: fly 3.8s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+  animation: fly 2.9s cubic-bezier(0.5, 0, 0.2, 1) forwards;
 }
 @utility intro-floor {
   background-image:
@@ -180,11 +206,11 @@ html {
   touch-action: pan-y;
 }
 
-/* Hero overlays (first viewport of home) */
+/* Hero overlays (first viewport of home) — fill exactly the space under the header */
 .hero-over-scene {
   position: relative;
-  height: 100svh;
-  min-height: 640px;
+  height: calc(100svh - 64px);
+  min-height: 600px;
   z-index: 1;
   pointer-events: none;
 }
@@ -208,6 +234,85 @@ html {
   bottom: 26px;
   right: max(24px, calc((100% - 1152px) / 2));
   left: max(24px, calc((100% - 1152px) / 2));
+}
+
+/* Interactive hero console — sits on the left (end side in RTL) */
+.hero-terminal-slot {
+  position: absolute;
+  left: max(24px, calc((100% - 1152px) / 2));
+  top: 140px;
+  width: min(380px, calc(100% - 48px));
+  pointer-events: auto;
+}
+.hero-terminal {
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+.hero-terminal-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--primary) 40%, transparent) transparent;
+}
+.hero-terminal-input {
+  caret-color: var(--primary);
+}
+.hero-terminal-input::placeholder {
+  color: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+}
+
+/* Scroll invitation pill (scrolls away with the hero) */
+.scroll-hint {
+  position: absolute;
+  bottom: 128px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: hint-pulse 2.4s ease-in-out infinite;
+}
+@keyframes hint-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* 3D rack tooltip (drei Html) */
+.rack-tip {
+  border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border));
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 12px 40px -12px color-mix(in oklab, var(--primary) 55%, transparent);
+  padding: 10px 12px;
+  min-width: 180px;
+  max-width: 260px;
+}
+
+/* Sector HUD label glitch-in */
+.sector-fa {
+  animation: sector-glitch 0.45s steps(2) 1;
+}
+@keyframes sector-glitch {
+  0% {
+    opacity: 0;
+    transform: translateX(6px);
+    text-shadow:
+      2px 0 var(--accent),
+      -2px 0 var(--primary);
+  }
+  40% {
+    opacity: 1;
+    transform: translateX(-2px);
+  }
+  100% {
+    transform: none;
+    text-shadow: none;
+  }
 }
 
 /* Glass HUD panels floating over the scene */
@@ -376,6 +481,15 @@ html {
   }
   .crt-scanlines {
     opacity: 0.3;
+  }
+  .scroll-hint {
+    display: none;
+  }
+}
+/* Hero console only on large screens; mobile keeps buttons + scene */
+@media (max-width: 1023px) {
+  .hero-terminal-slot {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

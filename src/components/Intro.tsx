@@ -50,9 +50,9 @@ export function Intro() {
     sessionStorage.setItem("intro", "1");
     setShow(true);
     const timers: ReturnType<typeof setTimeout>[] = [];
-    BOOT_LOG.forEach((_, i) => timers.push(setTimeout(() => setLogLines(i + 1), 350 + i * 480)));
-    timers.push(setTimeout(() => setLeaving(true), 3500));
-    timers.push(setTimeout(() => setShow(false), 4300));
+    BOOT_LOG.forEach((_, i) => timers.push(setTimeout(() => setLogLines(i + 1), 200 + i * 300)));
+    timers.push(setTimeout(() => setLeaving(true), 2300));
+    timers.push(setTimeout(() => setShow(false), 3000));
     return () => timers.forEach(clearTimeout);
   }, []);
   if (!show) return null;
@@ -94,6 +94,9 @@ export function Intro() {
           ))}
         </div>
         <h1 className="mt-2 text-5xl md:text-7xl font-black text-gradient">هوش برتر</h1>
+        <p className="mt-3 font-mono text-[11px] text-primary/70" dir="ltr">
+          scroll = walk · hover = inspect · type = talk
+        </p>
       </div>
       <button
         onClick={() => setShow(false)}

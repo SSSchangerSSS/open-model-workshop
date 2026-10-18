@@ -3,6 +3,7 @@ import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
 import { Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
 import { ScrollDriver } from "@/lib/scroll-progress";
+import { SectorHUD } from "@/components/SectorHUD";
 import Datacenter from "@/components/Datacenter";
 import { Tilt } from "@/components/Interactive";
 import { lazy, Suspense } from "react";
@@ -79,6 +80,7 @@ function Index() {
     <Shell>
       <ScrollProgress />
       <ScrollDriver />
+      <SectorHUD />
       <Datacenter />
       <CorridorGate />
 
@@ -179,17 +181,26 @@ function Index() {
           <div className="mt-10 space-y-3">
             {faq.map(([q, a], i) => (
               <Reveal key={i} delay={i * 100}>
-                <details className="group rack-card p-5 open:border-primary transition">
-                  <summary className="cursor-pointer list-none flex justify-between font-bold">
-                    <span>
-                      <span className="text-primary font-mono me-2" dir="ltr">
-                        Q{i + 1}:
+                <details dir="rtl" className="group rack-card p-5 open:border-primary transition">
+                  <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                    <span className="flex items-start gap-3 min-w-0">
+                      <span className="font-mono text-primary shrink-0 mt-0.5 text-sm" dir="ltr">
+                        [{String(i + 1).padStart(2, "0")}]
                       </span>
-                      {q}
+                      <bdi dir="rtl" className="font-bold leading-relaxed">
+                        {q}
+                      </bdi>
                     </span>
-                    <span className="text-primary group-open:rotate-45 transition">+</span>
+                    <span className="text-primary text-xl leading-none group-open:rotate-45 transition shrink-0">
+                      +
+                    </span>
                   </summary>
-                  <p className="mt-3 text-muted-foreground ps-8">{a}</p>
+                  <div dir="rtl" className="mt-4 flex items-start gap-3 text-muted-foreground">
+                    <span className="font-mono text-accent shrink-0 text-sm mt-0.5" dir="ltr">
+                      A&gt;
+                    </span>
+                    <p className="leading-relaxed">{a}</p>
+                  </div>
                 </details>
               </Reveal>
             ))}

@@ -1,8 +1,9 @@
 import { useEffect, lazy, Suspense, useState } from "react";
 import { Link, ClientOnly } from "@tanstack/react-router";
-import { ArrowLeft, Mail, RotateCcw, Server } from "lucide-react";
+import { ArrowLeft, ChevronDown, Mail, RotateCcw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactTerminal } from "./ContactTerminal";
+import { HeroTerminal } from "./HeroTerminal";
 
 const DatacenterScene = lazy(() => import("./DatacenterScene"));
 
@@ -53,7 +54,12 @@ export default function Datacenter() {
       <div className="scene-fixed" aria-hidden={false}>
         <ClientOnly fallback={<SceneFallback />}>
           <Suspense fallback={<SceneFallback />}>
-            <DatacenterScene mode="scroll" model={model} />
+            <DatacenterScene
+              mode="scroll"
+              model={model}
+              onPickModel={setModel}
+              onContact={() => setOpen(true)}
+            />
           </Suspense>
         </ClientOnly>
       </div>
@@ -69,11 +75,25 @@ export default function Datacenter() {
             <span className="text-primary cursor-blink" aria-hidden />
           </h1>
           <p className="mt-3 max-w-md text-sm md:text-base text-muted-foreground">
-            به راهروی دیتاسنتر ما خوش آمدید؛ با اسکرول در میان رک‌های سرور پیش بروید.
+            به راهروی دیتاسنتر ما خوش آمدید؛ رک‌ها را لمس کنید، فرمان بدهید، اسکرول کنید.
             <br />
             مدل‌های باز، سرورهای اختصاصی، اتوماسیون هوشمند — زیرساخت شما؛ هوش بی‌مرز.
           </p>
         </div>
+
+        {/* Interactive console — left side (end side in RTL) */}
+        <div className="hero-terminal-slot">
+          <HeroTerminal />
+        </div>
+
+        {/* scroll invitation */}
+        <div className="scroll-hint" aria-hidden>
+          <span className="panel-glass rounded-full px-4 py-1.5 text-xs text-muted-foreground flex items-center gap-2">
+            برای قدم زدن در راهرو اسکرول کنید
+            <ChevronDown className="h-3.5 w-3.5 text-primary animate-bounce" />
+          </span>
+        </div>
+
         <div className="datacenter-bottom">
           <div className="flex flex-wrap gap-2 mb-4" dir="ltr">
             {models.map((m, i) => (
@@ -108,7 +128,15 @@ export default function Datacenter() {
               <p className="font-mono text-xs text-primary" dir="ltr">
                 {m ? `NODE / ${m.name.toUpperCase()}` : "SELF-HOSTED / OPEN-WEIGHT"}
               </p>
-              <p className="mt-2 text-sm">{m?.detail || "n8n · Flowise · GPU Servers"}</p>
+              <p className="mt-2 text-sm">
+                {m ? (
+                  <>
+                    <bdi className="font-bold text-foreground">{m.name}</bdi> — {m.detail}
+                  </>
+                ) : (
+                  "n8n · Flowise · GPU Servers"
+                )}
+              </p>
             </div>
             <div className="flex gap-2">
               <Button className="h-11 glow" onClick={() => setOpen(true)}>

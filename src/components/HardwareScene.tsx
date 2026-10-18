@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, Sparkles } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { MODELS, type ModelSpec } from "@/lib/sizing";
+import { MODELS, CATEGORY_MAP, type ModelSpec, type ModelCategory } from "@/lib/sizing";
 import { MatrixRain } from "./MatrixRain";
 import {
   getPalette,
@@ -13,11 +13,24 @@ import {
   type Palette,
 } from "./DatacenterScene";
 
-export const RING_R = 8; // pod ring radius (m)
+export const RING_R = 9; // pod ring radius (m)
 export const angleOf = (i: number) => (i / MODELS.length) * Math.PI * 2;
 
+/** Wrap-safe mean angle of a category's contiguous sector (rad). */
+export function categoryMidAngle(cat: ModelCategory): number {
+  let sx = 0;
+  let sz = 0;
+  MODELS.forEach((m, i) => {
+    if (m.cat !== cat) return;
+    const a = angleOf(i);
+    sx += Math.sin(a);
+    sz += Math.cos(a);
+  });
+  return sx === 0 && sz === 0 ? 0 : Math.atan2(sx, sz);
+}
+
 /** Overview orbit radius — farther back on small screens so the ring fits the frame. */
-const freeRad = () => (typeof window !== "undefined" && window.innerWidth < 640 ? 6.3 : 4.6);
+const freeRad = () => (typeof window !== "undefined" && window.innerWidth < 640 ? 6.9 : 5.4);
 
 /* Camera walk state shared between DOM hints and the in-canvas rig */
 export type NavState = {
@@ -62,10 +75,12 @@ const lookTmp = new THREE.Vector3();
 function HoloRig({
   nav,
   focus,
+  filter,
   reduced,
 }: {
   nav: React.RefObject<NavState>;
   focus: number;
+  filter: ModelCategory | null;
   reduced: boolean;
 }) {
   const look = useRef(new THREE.Vector3(0, 1.5, 0));
@@ -74,15 +89,18 @@ function HoloRig({
     if (!n) return;
     const dt = Math.min(rawDelta, 0.05);
     n.idle += dt;
-    if (focus < 0 && !n.dragging && !reduced && n.idle > 3) n.azT += dt * 0.05;
+    if (focus < 0 && !filter && !n.dragging && !reduced && n.idle > 3) n.azT += dt * 0.05;
 
-    const mobile = size.width < 640;
     const k = 1 - Math.exp(-3.2 * dt);
 
-    // look target: the focused pod, otherwise the hall center
+    // look target: the focused pod, the active category sector, or the hall center
     lookTmp.set(0, 1.5, 0);
     if (focus >= 0)
       lookTmp.set(Math.sin(angleOf(focus)) * RING_R, 1.8, Math.cos(angleOf(focus)) * RING_R);
+    else if (filter) {
+      const mid = categoryMidAngle(filter);
+      lookTmp.set(Math.sin(mid) * RING_R, 1.8, Math.cos(mid) * RING_R);
+    }
     look.current.lerp(lookTmp, k);
 
     // shortest-path azimuth easing
@@ -160,6 +178,7 @@ function Pod({
   i,
   p,
   selected,
+  dimmed,
   matrixFont,
   reduced,
   onPick,
@@ -168,10 +187,12 @@ function Pod({
   i: number;
   p: Palette;
   selected: boolean;
+  dimmed: boolean;
   matrixFont: boolean;
   reduced: boolean;
   onPick: (i: number) => void;
 }) {
+  const cat = CATEGORY_MAP[m.cat];
   const a = angleOf(i);
   const pos: [number, number, number] = [Math.sin(a) * RING_R, 0, Math.cos(a) * RING_R];
   const mat = useRef<THREE.ShaderMaterial>(null);
@@ -182,12 +203,14 @@ function Pod({
   const texs = useMemo(() => {
     const fa = makeLabelTexture(m.fa, p.green, matrixFont, 34);
     const en = makeLabelTexture(`${m.en} · ${m.params}`, m.accent, false, 30);
-    return { fa, en };
-  }, [m, p, matrixFont]);
+    const catTex = makeLabelTexture(cat.fa, cat.color, matrixFont, 24);
+    return { fa, en, catTex };
+  }, [m, p, matrixFont, cat]);
   useEffect(
     () => () => {
       texs.fa.dispose();
       texs.en.dispose();
+      texs.catTex.dispose();
     },
     [texs],
   );
@@ -197,7 +220,7 @@ function Pod({
     const t = clock.elapsedTime;
     if (mat.current) {
       if (!reduced) mat.current.uniforms.uTime.value += dt;
-      const target = selected ? 1 : hover ? 0.85 : 0.22;
+      const target = dimmed ? 0.03 : selected ? 1 : hover ? 0.85 : 0.22;
       mat.current.uniforms.uBoost.value +=
         (target - mat.current.uniforms.uBoost.value) * (1 - Math.exp(-6 * dt));
     }
@@ -213,13 +236,13 @@ function Pod({
   const accent = new THREE.Color(m.accent);
   return (
     <group position={pos} rotation-y={a + Math.PI}>
-      {/* floor accent ring */}
+      {/* floor accent ring — category color ties the sector together */}
       <mesh ref={ring} rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
         <ringGeometry args={[1.32, 1.62, 48]} />
         <meshBasicMaterial
-          color={m.accent}
+          color={cat.color}
           transparent
-          opacity={selected ? 0.75 : 0.3}
+          opacity={dimmed ? 0.05 : selected ? 0.75 : 0.3}
           toneMapped={false}
         />
       </mesh>
@@ -232,6 +255,7 @@ function Pod({
       <mesh
         position={[0, 1.45, 0]}
         onPointerOver={(e) => {
+          if (dimmed) return;
           e.stopPropagation();
           setHover(true);
           document.body.style.cursor = "pointer";
@@ -242,6 +266,7 @@ function Pod({
           document.body.style.cursor = "auto";
         }}
         onClick={(e) => {
+          if (dimmed) return;
           e.stopPropagation();
           onPick(i);
         }}
@@ -261,6 +286,7 @@ function Pod({
       <mesh
         position={[0, 1.22, 0]}
         onPointerOver={(e) => {
+          if (dimmed) return;
           e.stopPropagation();
           setHover(true);
           document.body.style.cursor = "pointer";
@@ -271,6 +297,7 @@ function Pod({
           document.body.style.cursor = "auto";
         }}
         onClick={(e) => {
+          if (dimmed) return;
           e.stopPropagation();
           onPick(i);
         }}
@@ -318,28 +345,57 @@ function Pod({
         <meshBasicMaterial
           color={m.accent}
           transparent
-          opacity={selected ? 0.1 : 0.045}
+          opacity={dimmed ? 0.012 : selected ? 0.1 : 0.045}
           side={THREE.DoubleSide}
           depthWrite={false}
           toneMapped={false}
         />
       </mesh>
-      {/* floating labels */}
+      {/* floating labels — category sign on top, then fa/en */}
       <group ref={labels}>
+        <mesh position={[0, 3.58, 0]}>
+          <planeGeometry
+            args={[Math.min(1.9, 0.2 * (texs.catTex.image.width / texs.catTex.image.height)), 0.2]}
+          />
+          <meshBasicMaterial
+            map={texs.catTex}
+            transparent
+            opacity={dimmed ? 0.1 : 1}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
         <mesh position={[0, 3.22, 0]}>
           <planeGeometry
             args={[Math.min(2.5, 0.34 * (texs.fa.image.width / texs.fa.image.height)), 0.34]}
           />
-          <meshBasicMaterial map={texs.fa} transparent toneMapped={false} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            map={texs.fa}
+            transparent
+            opacity={dimmed ? 0.1 : 1}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
         </mesh>
         <mesh position={[0, 2.86, 0]}>
           <planeGeometry
             args={[Math.min(2.5, 0.24 * (texs.en.image.width / texs.en.image.height)), 0.24]}
           />
-          <meshBasicMaterial map={texs.en} transparent toneMapped={false} side={THREE.DoubleSide} />
+          <meshBasicMaterial
+            map={texs.en}
+            transparent
+            opacity={dimmed ? 0.1 : 1}
+            toneMapped={false}
+            side={THREE.DoubleSide}
+          />
         </mesh>
       </group>
-      <pointLight position={[0, 1.6, 0.6]} intensity={2.2} distance={3.4} color={m.accent} />
+      <pointLight
+        position={[0, 1.6, 0.6]}
+        intensity={dimmed ? 0.3 : 2.2}
+        distance={3.4}
+        color={m.accent}
+      />
       {hover && !selected && (
         <Html
           position={[0, 2.35, 0.7]}
@@ -349,6 +405,12 @@ function Pod({
         >
           <div className="rack-tip" dir="rtl">
             <p className="text-xs font-bold text-primary whitespace-nowrap">{m.fa}</p>
+            <p
+              className="mt-1 text-[11px] font-bold whitespace-nowrap"
+              style={{ color: cat.color }}
+            >
+              {cat.fa} · {cat.descFa}
+            </p>
             <p className="mt-1 text-[11px] text-muted-foreground whitespace-nowrap">{m.tagFa}</p>
             <p className="mt-1 font-mono text-[10px] text-accent" dir="ltr">
               {m.en} · {m.params}
@@ -419,6 +481,7 @@ function Hall({
   p,
   nav,
   focus,
+  filter,
   reduced,
   matrixFont,
   onPick,
@@ -426,6 +489,7 @@ function Hall({
   p: Palette;
   nav: React.RefObject<NavState>;
   focus: number;
+  filter: ModelCategory | null;
   reduced: boolean;
   matrixFont: boolean;
   onPick: (i: number) => void;
@@ -500,6 +564,7 @@ function Hall({
           i={i}
           p={p}
           selected={focus === i}
+          dimmed={filter !== null && m.cat !== filter}
           matrixFont={matrixFont}
           reduced={reduced}
           onPick={onPick}
@@ -513,7 +578,7 @@ function Hall({
         <MatrixRain green={p.green} light={p.light} reduced={reduced} />
       </group>
 
-      <HoloRig nav={nav} focus={focus} reduced={reduced} />
+      <HoloRig nav={nav} focus={focus} filter={filter} reduced={reduced} />
       <NavControls nav={nav} />
     </>
   );
@@ -525,9 +590,11 @@ function Hall({
 
 export default function HardwareScene({
   focus,
+  catFilter,
   onPick,
 }: {
   focus: number;
+  catFilter: ModelCategory | null;
   onPick: (i: number) => void;
 }) {
   const [p] = useState(getPalette);
@@ -547,24 +614,30 @@ export default function HardwareScene({
     dragging: false,
   });
 
-  // glide to the selected pod / back to the center overview
+  // glide to the selected pod, the active category sector, or the center overview
   useEffect(() => {
     const n = nav.current;
+    const mobile = typeof window !== "undefined" && window.innerWidth < 640;
     if (focus >= 0) {
       n.azT = angleOf(focus);
-      n.radT = typeof window !== "undefined" && window.innerWidth < 640 ? 2.4 : 2.8;
+      n.radT = mobile ? 2.6 : 3.2;
       n.hT = 1.9;
+      n.idle = 0;
+    } else if (catFilter) {
+      n.azT = categoryMidAngle(catFilter) + Math.PI; // stand opposite, look at the sector
+      n.radT = mobile ? 6.6 : 4.9;
+      n.hT = 2.3;
       n.idle = 0;
     } else {
       n.radT = freeRad();
       n.hT = 2.2;
     }
-  }, [focus]);
+  }, [focus, catFilter]);
 
   return (
     <Canvas
       dpr={[1, 1.6]}
-      camera={{ position: [Math.sin(2.4) * 4.6, 2.2, Math.cos(2.4) * 4.6], fov: 50 }}
+      camera={{ position: [Math.sin(2.4) * 5.4, 2.2, Math.cos(2.4) * 5.4], fov: 50 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       style={{ position: "absolute", inset: 0 }}
     >
@@ -579,6 +652,7 @@ export default function HardwareScene({
           p={p}
           nav={nav}
           focus={focus}
+          filter={catFilter}
           reduced={reduced}
           matrixFont={matrixFont}
           onPick={onPick}

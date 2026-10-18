@@ -4,7 +4,16 @@ import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { CTX_NOTE, GPUS, MAX_USERS, MODELS, USER_PRESETS, sizeFor } from "@/lib/sizing";
+import {
+  CATEGORIES,
+  CATEGORY_MAP,
+  GPUS,
+  MAX_USERS,
+  MODELS,
+  USER_PRESETS,
+  sizeFor,
+  type ModelCategory,
+} from "@/lib/sizing";
 
 const HardwareScene = lazy(() => import("@/components/HardwareScene"));
 
@@ -15,13 +24,13 @@ export const Route = createFileRoute("/hardware")({
       {
         name: "description",
         content:
-          "در سالن سه‌بعدی سرورهای مدل‌های متن‌باز را ببینید؛ تعداد کاربران همزمان را وارد کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
+          "در سالن سه‌بعدی سرورهای ۱۵ مدل متن‌باز را در ۷ دسته ببینید — چت، ایجنت، استدلال، تصویر، ویدیو، صوت و RAG؛ کاربران همزمان را وارد کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
       },
       { property: "og:title", content: "سالن سخت‌افزار سه‌بعدی | هوش برتر" },
       {
         property: "og:description",
         content:
-          "محاسبهٔ زندهٔ GPU، RAM و هزینهٔ استقرار Llama، Qwen، DeepSeek و Mistral بر اساس کاربران همزمان.",
+          "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار مدل‌های متن‌باز — از چت و ایجنت تا تصویر، ویدیو و صوت — بر اساس کاربران همزمان.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -31,6 +40,8 @@ export const Route = createFileRoute("/hardware")({
 });
 
 const faDigits = (v: number | string) => String(v).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+
+const catCount = (c: ModelCategory) => MODELS.filter((m) => m.cat === c).length;
 
 function SizingPanel({
   index,
@@ -45,6 +56,7 @@ function SizingPanel({
 }) {
   const m = MODELS[index];
   const r = sizeFor(m, users);
+  const cat = CATEGORY_MAP[m.cat];
   return (
     <div
       dir="rtl"
@@ -53,6 +65,16 @@ function SizingPanel({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="text-[11px] font-bold px-1.5 py-0.5 rounded"
+              style={{
+                color: cat.color,
+                border: `1px solid color-mix(in oklab, ${cat.color} 45%, transparent)`,
+                background: `color-mix(in oklab, ${cat.color} 12%, transparent)`,
+              }}
+            >
+              {cat.fa}
+            </span>
             <span
               className="font-mono text-[11px] px-1.5 py-0.5 rounded border border-primary/40 text-primary"
               dir="ltr"
@@ -79,6 +101,20 @@ function SizingPanel({
         >
           <X size={16} />
         </button>
+      </div>
+
+      {/* کاربرد مدل — جواب مستقیم «این مدل برای چيست؟» */}
+      <div
+        className="mt-4 rounded-lg border p-3"
+        style={{
+          borderColor: `color-mix(in oklab, ${cat.color} 30%, transparent)`,
+          background: `color-mix(in oklab, ${cat.color} 6%, transparent)`,
+        }}
+      >
+        <p className="text-[11px] font-bold" style={{ color: cat.color }}>
+          مناسب برای چه کارهایی؟
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-foreground/90">{m.useForFa}</p>
       </div>
 
       <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{m.descFa}</p>
@@ -173,7 +209,7 @@ function SizingPanel({
           </bdi>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-          شامل GPU، سرور، رم، ذخیره‌سازی و شبکه · {CTX_NOTE} · قیمت قطعات نو، تخمینی و بدون خدمات
+          شامل GPU، سرور، رم، ذخیره‌سازی و شبکه · {m.servingFa} · قیمت قطعات نو، تخمینی و بدون خدمات
           استقرار.
         </p>
         <Link
@@ -191,12 +227,29 @@ function SizingPanel({
 function HardwarePage() {
   const [sel, setSel] = useState<number | null>(null);
   const [users, setUsers] = useState(10);
+  const [catFilter, setCatFilter] = useState<ModelCategory | null>(null);
+
+  const visibleIdx = MODELS.map((m, i) => ({ m, i }))
+    .filter((x) => !catFilter || x.m.cat === catFilter)
+    .map((x) => x.i);
 
   const pick = (i: number) => {
     setSel(i);
   };
   const cycle = (dir: 1 | -1) => {
-    setSel((s) => (s === null ? 0 : (s + dir + MODELS.length) % MODELS.length));
+    setSel((s) => {
+      const list = visibleIdx;
+      if (!list.length) return null;
+      if (s === null) return list[0];
+      const p = list.indexOf(s);
+      if (p === -1) return list[0];
+      return list[(p + dir + list.length) % list.length];
+    });
+  };
+  const toggleCat = (c: ModelCategory) => {
+    const next = catFilter === c ? null : c;
+    setCatFilter(next);
+    setSel((s) => (s !== null && next !== null && MODELS[s].cat !== next ? null : s));
   };
 
   return (
@@ -213,7 +266,7 @@ function HardwarePage() {
               </div>
             }
           >
-            <HardwareScene focus={sel ?? -1} onPick={pick} />
+            <HardwareScene focus={sel ?? -1} catFilter={catFilter} onPick={pick} />
           </Suspense>
         </ClientOnly>
 
@@ -227,8 +280,63 @@ function HardwarePage() {
               سالن سخت‌افزار
             </h1>
             <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
-              هشت مدل متن‌باز، هشت سرور زنده. روی هر سرور کلیک کنید، تعداد کاربران همزمانتان را
-              بگویید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
+              پانزده مدل متن‌باز در هفت دسته — از چت و عامل هوشمند تا تصویر، ویدیو و صوت. روی هر
+              سرور کلیک کنید، کاربران همزمانتان را بگویید و سخت‌افزار و قیمت دلاری را همان‌جا
+              ببینید.
+            </p>
+
+            {/* category filter — روشن/خاموش کردن بخش‌های سالن */}
+            <div className="pointer-events-auto mt-3 flex flex-wrap items-center gap-1.5 max-w-2xl">
+              <button
+                onClick={() => {
+                  setCatFilter(null);
+                  setSel(null);
+                }}
+                className={`text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
+                  catFilter === null
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground hover:text-primary hover:border-primary/50"
+                }`}
+              >
+                همهٔ دسته‌ها
+              </button>
+              {CATEGORIES.map((c) => {
+                const active = catFilter === c.key;
+                return (
+                  <button
+                    key={c.key}
+                    onClick={() => toggleCat(c.key)}
+                    title={c.descFa}
+                    className={`flex items-center gap-1.5 text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
+                      active
+                        ? "text-foreground"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                    style={
+                      active
+                        ? {
+                            borderColor: c.color,
+                            background: `color-mix(in oklab, ${c.color} 16%, transparent)`,
+                            boxShadow: `0 0 12px color-mix(in oklab, ${c.color} 35%, transparent)`,
+                          }
+                        : undefined
+                    }
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
+                    />
+                    {c.fa}
+                    <span className="font-mono text-[9px] opacity-70" dir="ltr">
+                      ×{faDigits(catCount(c.key))}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
+              روی یک دسته بزنید تا فقط سرورهای همان بخش روشن بمانند؛ کاربرد هر مدل داخل پنل همان
+              سرور نوشته شده است.
             </p>
           </div>
         </div>
@@ -257,7 +365,10 @@ function HardwarePage() {
                 style={
                   sel === i
                     ? { background: m.accent, boxShadow: `0 0 10px ${m.accent}` }
-                    : { border: "1px solid color-mix(in oklab, var(--primary) 45%, transparent)" }
+                    : {
+                        border: "1px solid color-mix(in oklab, var(--primary) 45%, transparent)",
+                        opacity: catFilter && m.cat !== catFilter ? 0.25 : 1,
+                      }
                 }
               />
             ))}
@@ -292,16 +403,18 @@ function HardwarePage() {
             جدول مرجع: <span className="text-gradient">سخت‌افزار لازم</span> برای هر مدل
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            خلاصهٔ محاسبات سالن سه‌بعدی برای سه سناریوی ترافیک. عدد دقیق و پیکربندی اختصاصی‌تان را
-            داخل سالن و با اسلایدر کاربران همزمان بگیرید.
+            خلاصهٔ محاسبات سالن سه‌بعدی برای سه سناریوی ترافیک، به‌همراه دسته و کاربرد اصلی هر مدل.
+            عدد دقیق و پیکربندی اختصاصی‌تان را داخل سالن و با اسلایدر کاربران همزمان بگیرید.
           </p>
         </Reveal>
         <Reveal delay={120}>
           <div className="mt-8 overflow-x-auto panel-glass rounded-xl">
-            <table className="w-full text-sm min-w-[640px]">
+            <table className="w-full text-sm min-w-[820px]">
               <thead>
                 <tr className="border-b border-primary/25 text-xs text-muted-foreground">
                   <th className="p-3.5 text-start font-bold">مدل</th>
+                  <th className="p-3.5 text-start font-bold">دسته</th>
+                  <th className="p-3.5 text-start font-bold">کاربرد اصلی</th>
                   <th className="p-3.5 text-start font-bold">دقت</th>
                   <th className="p-3.5 text-start font-bold">۵ کاربر</th>
                   <th className="p-3.5 text-start font-bold">۲۵ کاربر</th>
@@ -309,45 +422,87 @@ function HardwarePage() {
                 </tr>
               </thead>
               <tbody>
-                {MODELS.map((m) => (
-                  <tr
-                    key={m.id}
-                    className="border-b border-border/60 hover:bg-primary/5 transition"
-                  >
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-2">
+                {MODELS.map((m) => {
+                  const cat = CATEGORY_MAP[m.cat];
+                  return (
+                    <tr
+                      key={m.id}
+                      className="border-b border-border/60 hover:bg-primary/5 transition"
+                    >
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
+                          />
+                          <span className="font-bold">{m.fa}</span>
+                          <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+                            {m.params}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-3.5 whitespace-nowrap">
                         <span
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
-                        />
-                        <span className="font-bold">{m.fa}</span>
-                        <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
-                          {m.params}
+                          className="text-[11px] font-bold px-1.5 py-0.5 rounded"
+                          style={{
+                            color: cat.color,
+                            border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
+                          }}
+                        >
+                          {cat.fa}
                         </span>
-                      </div>
-                    </td>
-                    <td className="p-3.5 font-mono text-xs" dir="ltr">
-                      {m.precision}
-                    </td>
-                    {[5, 25, 100].map((u) => {
-                      const r = sizeFor(m, u);
-                      return (
-                        <td key={u} className="p-3.5 whitespace-nowrap">
-                          <bdi dir="ltr" className="font-mono text-xs">
-                            {r.gpus}× {GPUS[m.gpu].name}
-                          </bdi>
-                          <bdi dir="ltr" className="block font-mono text-xs text-primary">
-                            ${r.priceTotal.toLocaleString("en-US")}
-                          </bdi>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-3.5 text-xs text-muted-foreground">{m.bestForFa[0]}</td>
+                      <td className="p-3.5 font-mono text-xs" dir="ltr">
+                        {m.precision}
+                      </td>
+                      {[5, 25, 100].map((u) => {
+                        const r = sizeFor(m, u);
+                        return (
+                          <td key={u} className="p-3.5 whitespace-nowrap">
+                            <bdi dir="ltr" className="font-mono text-xs">
+                              {r.gpus}× {GPUS[m.gpu].name}
+                            </bdi>
+                            <bdi dir="ltr" className="block font-mono text-xs text-primary">
+                              ${r.priceTotal.toLocaleString("en-US")}
+                            </bdi>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </Reveal>
+
+        {/* دسته‌بندی — راهنمای کوتاه دسته‌ها */}
+        <Reveal delay={140}>
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {CATEGORIES.map((c) => (
+              <div key={c.key} className="panel-glass rounded-xl p-4">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: c.color, boxShadow: `0 0 8px ${c.color}` }}
+                  />
+                  <h3 className="font-bold text-sm">{c.fa}</h3>
+                  <span className="font-mono text-[10px] text-muted-foreground ms-auto" dir="ltr">
+                    {c.en}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{c.descFa}</p>
+                <p className="mt-2 font-mono text-[10px] text-primary" dir="ltr">
+                  {MODELS.filter((m) => m.cat === c.key)
+                    .map((m) => m.en.split(" · ")[0])
+                    .join(" · ")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
         <Reveal delay={200}>
           <div className="mt-14 panel-glass rounded-xl p-8 flex flex-wrap items-center justify-between gap-6">
             <div>

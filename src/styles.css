@@ -8,17 +8,30 @@
 /* ------------------------------------------------------------------ */
 @font-face {
   font-family: "Vazir Matrix";
-  src: url("./assets/fonts/VazirMatrix-Regular.woff2") format("woff2");
+  src: url("./assets/fonts/VazirMatrix-Regular-sub.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Vazir Matrix";
-  src: url("./assets/fonts/VazirMatrix-Bold.woff2") format("woff2");
+  src: url("./assets/fonts/VazirMatrix-Bold-sub.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
+}
+
+/* JetBrains Mono — self-hosted latin VARIABLE subset (wght 400-800 in one
+   30KB file). Previously pulled from fonts.googleapis.com as a render-
+   blocking stylesheet + cross-origin font files per weight. */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./assets/fonts/JetBrainsMono-400-latin.woff2") format("woff2-variations");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+2013-2014, U+2018-2019, U+201C-201D, U+2026, U+2212;
 }
 
 @theme inline {
@@ -247,6 +260,54 @@ html.intro-done #boot-overlay {
 }
 .scene-fixed canvas {
   touch-action: pan-y;
+}
+
+/* Zero-JS stand-in shown while the browser is busy / before the 3D chunk
+   arrives on desktop — faint grid + glows so the swap to WebGL is seamless. */
+.scene-css-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(
+      42% 30% at 18% 22%,
+      color-mix(in oklab, var(--scene-green) 9%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      38% 26% at 82% 68%,
+      color-mix(in oklab, var(--scene-cyan) 8%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(color-mix(in oklab, var(--scene-green) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--scene-green) 4%, transparent) 1px,
+      transparent 1px
+    ),
+    var(--scene-void);
+  background-size:
+    auto,
+    auto,
+    44px 44px,
+    44px 44px,
+    auto;
+  background-position:
+    0 0,
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+}
+
+/* Below-the-fold heavy sections skip rendering until scrolled near —
+   faster first paint + smoother scrolling on phones and low-end desktops.
+   Pair with --cv-size set per section for a stable scroll height guess. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--cv-size, 720px);
 }
 
 /* Hardware showroom viewport (3D ring hall) */

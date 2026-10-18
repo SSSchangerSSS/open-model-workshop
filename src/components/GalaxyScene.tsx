@@ -262,9 +262,9 @@ function ModelStar({
 
   return (
     <group ref={group}>
-      {/* star body */}
+      {/* star body — facet count halved on compact tier */}
       <mesh ref={mesh} onPointerOver={over} onPointerOut={out} onClick={pick}>
-        <sphereGeometry args={[size, 36, 36]} />
+        <sphereGeometry args={[size, COMPACT ? 20 : 36, COMPACT ? 20 : 36]} />
         <meshStandardMaterial
           ref={mat}
           color="#07100b"
@@ -509,12 +509,17 @@ function Galaxy({
           </div>
         </Html>
       )}
-      <pointLight
-        intensity={dimmed ? 0.3 : 1.1}
-        distance={maxR * 3.2}
-        decay={2}
-        color={spec.color}
-      />
+      {/* one colored light per galaxy — desktop only. Nine dynamic lights in
+          one scene are brutal for phone fragment shaders, and the stars read
+          perfectly on compact tier from their emissive glow alone. */}
+      {!COMPACT && (
+        <pointLight
+          intensity={dimmed ? 0.3 : 1.1}
+          distance={maxR * 3.2}
+          decay={2}
+          color={spec.color}
+        />
+      )}
 
       {/* category sign — readable in overview, fades out when you fly inside
           this galaxy so it never fights with the star labels below it */}
@@ -862,7 +867,7 @@ export default function GalaxyScene({
 
   return (
     <Canvas
-      dpr={COMPACT ? [0.65, 1] : [1, 1.75]}
+      dpr={COMPACT ? [0.65, 1] : [1, 1.5]}
       camera={{
         position: [Math.sin(2.4) * overviewRad(), overviewH(), Math.cos(2.4) * overviewRad()],
         fov: 55,

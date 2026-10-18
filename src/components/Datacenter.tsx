@@ -13,6 +13,26 @@ const DatacenterScene = lazy(() => import("./DatacenterScene"));
  *  and never download the ~1MB three.js chunk on content pages. */
 const COMPACT = isCompactDevice();
 
+/** Desktop: wait for the browser to go idle before pulling the ~900KB
+ *  three.js chunk. First paint, hydration and INP stay clean; the corridor
+ *  fades in over the CSS fallback a moment later. */
+function useIdleReveal() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    if (COMPACT) return;
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    let t: number | undefined;
+    if (w.requestIdleCallback) w.requestIdleCallback(() => setReady(true), { timeout: 2500 });
+    else t = window.setTimeout(setReady, 1200);
+    return () => {
+      if (t !== undefined) clearTimeout(t);
+    };
+  }, []);
+  return ready;
+}
+
 const models = [
   { name: "Qwen", detail: "گفتگو و پردازش فارسی" },
   { name: "Llama", detail: "ایجنت‌های سازمانی" },
@@ -23,6 +43,7 @@ const models = [
 export default function Datacenter() {
   const [model, setModel] = useState(-1);
   const [open, setOpen] = useState(false);
+  const idleReady = useIdleReveal();
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement;
@@ -56,14 +77,15 @@ export default function Datacenter() {
 
   return (
     <>
-      {/* Fixed backdrop behind the whole page: real 3D corridor on desktop,
-          lightweight 2D matrix rain on phones — camera walks with scroll */}
+      {/* Fixed backdrop behind the whole page: real 3D corridor on desktop
+          (revealed once the browser is idle), lightweight 2D matrix rain on
+          phones — camera walks with scroll */}
       <div className="scene-fixed" aria-hidden={false}>
         <ClientOnly fallback={<SceneFallback />}>
           {COMPACT ? (
             <MatrixBackdrop />
-          ) : (
-            <Suspense fallback={<SceneFallback />}>
+          ) : idleReady ? (
+            <Suspense fallback={null}>
               <DatacenterScene
                 mode="scroll"
                 model={model}
@@ -71,6 +93,8 @@ export default function Datacenter() {
                 onContact={() => setOpen(true)}
               />
             </Suspense>
+          ) : (
+            <SceneFallback />
           )}
         </ClientOnly>
       </div>
@@ -189,11 +213,11 @@ export default function Datacenter() {
 
 function SceneFallback() {
   return (
-    <div className="flex h-full items-center justify-center">
-      <p className="font-mono text-primary text-sm" dir="ltr">
+    <div className="scene-css-fallback" aria-hidden>
+      <span className="font-mono text-primary/70 text-xs" dir="ltr">
         &gt; booting datacenter_
-        <span className="cursor-blink" aria-hidden />
-      </p>
+        <span className="cursor-blink" />
+      </span>
     </div>
   );
 }

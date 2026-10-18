@@ -88,13 +88,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      // speed up third-party font CSS + font files
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap",
-      },
+      // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
+      // no third-party request, no render-blocking stylesheet round-trip.
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
     scripts: [

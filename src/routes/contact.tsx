@@ -183,7 +183,10 @@ function Contact() {
         </ClientOnly>
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 py-20">
+      <div
+        className="cv-auto relative z-10 max-w-5xl mx-auto px-6 py-20"
+        style={{ "--cv-size": "1400px" } as React.CSSProperties}
+      >
         <p className="font-mono text-primary mb-2" dir="ltr">
           &gt; establish human connection --secure
         </p>

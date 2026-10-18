@@ -184,7 +184,10 @@ function Services() {
         </ClientOnly>
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-20">
+      <div
+        className="cv-auto relative z-10 max-w-6xl mx-auto px-6 py-20"
+        style={{ "--cv-size": "3000px" } as React.CSSProperties}
+      >
         <p className="font-mono text-xs text-primary" dir="ltr">
           &gt; cd /showroom && ./list-services --verbose
         </p>

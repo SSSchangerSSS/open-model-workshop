@@ -492,7 +492,10 @@ function HardwarePage() {
       </section>
 
       {/* ---------- reference table (SSG-rendered) ---------- */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 py-20">
+      <section
+        className="cv-auto relative z-10 max-w-6xl mx-auto px-6 py-20"
+        style={{ "--cv-size": "7000px" } as React.CSSProperties}
+      >
         <Reveal>
           <p className="font-mono text-xs text-primary" dir="ltr">
             &gt; cat sizing-table.md

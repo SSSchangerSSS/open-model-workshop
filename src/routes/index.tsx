@@ -10,9 +10,9 @@ import { lazy, Suspense, useRef, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { ArrowLeft, Check, Search, X, MoveHorizontal } from "lucide-react";
 
-import hardware from "@/assets/hardware.jpg";
-import workflow from "@/assets/workflow.jpg";
-import llm from "@/assets/llm.jpg";
+import hardware from "@/assets/hardware.webp";
+import workflow from "@/assets/workflow.webp";
+import llm from "@/assets/llm.webp";
 
 const CorridorStatus = lazy(() => import("@/components/CorridorStatus"));
 
@@ -132,7 +132,10 @@ function Index() {
         </section>
 
         {/* STATS */}
-        <section className="max-w-6xl mx-auto px-6 py-20 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section
+          className="cv-auto max-w-6xl mx-auto px-6 py-20 grid grid-cols-2 md:grid-cols-4 gap-4"
+          style={{ "--cv-size": "380px" } as React.CSSProperties}
+        >
           {[
             [80, "٪", "کاهش کارهای دستی"],
             [24, "/۷", "کارکرد بی‌وقفه"],
@@ -159,7 +162,10 @@ function Index() {
         </section>
 
         {/* COMPARE — manual vs automated (drag me) */}
-        <section className="max-w-6xl mx-auto px-6 pb-24">
+        <section
+          className="cv-auto max-w-6xl mx-auto px-6 pb-24"
+          style={{ "--cv-size": "640px" } as React.CSSProperties}
+        >
           <Reveal>
             <p className="font-mono text-xs text-primary text-center" dir="ltr">
               &gt; diff --before --after
@@ -177,7 +183,10 @@ function Index() {
         </section>
 
         {/* BENTO */}
-        <section className="max-w-6xl mx-auto px-6 pb-24">
+        <section
+          className="cv-auto max-w-6xl mx-auto px-6 pb-24"
+          style={{ "--cv-size": "1050px" } as React.CSSProperties}
+        >
           <Reveal>
             <p className="font-mono text-xs text-primary text-center" dir="ltr">
               &gt; ls /services --all
@@ -229,7 +238,10 @@ function Index() {
         </section>
 
         {/* FAQ */}
-        <section className="max-w-3xl mx-auto px-6 py-24">
+        <section
+          className="cv-auto max-w-3xl mx-auto px-6 py-24"
+          style={{ "--cv-size": "950px" } as React.CSSProperties}
+        >
           <Reveal>
             <p className="font-mono text-xs text-primary text-center" dir="ltr">
               &gt; cat FAQ.md
@@ -240,7 +252,10 @@ function Index() {
         </section>
 
         {/* CTA */}
-        <section className="max-w-6xl mx-auto px-6 pb-24">
+        <section
+          className="cv-auto max-w-6xl mx-auto px-6 pb-24"
+          style={{ "--cv-size": "400px" } as React.CSSProperties}
+        >
           <Reveal>
             <div className="relative overflow-hidden rounded-2xl rack-card border-beam p-12 md:p-20 text-center">
               <div className="pointer-events-none absolute inset-0 bg-primary/10 blur-3xl animate-aurora" />

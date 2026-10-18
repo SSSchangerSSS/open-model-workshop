@@ -4,8 +4,14 @@ import { ArrowLeft, ChevronDown, Mail, RotateCcw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactTerminal } from "./ContactTerminal";
 import { HeroTerminal } from "./HeroTerminal";
+import MatrixBackdrop from "./MatrixBackdrop";
+import { isCompactDevice } from "@/lib/device";
 
 const DatacenterScene = lazy(() => import("./DatacenterScene"));
+
+/** One-time client tier — phones / low-power devices get the 2D backdrop
+ *  and never download the ~1MB three.js chunk on content pages. */
+const COMPACT = isCompactDevice();
 
 const models = [
   { name: "Qwen", detail: "گفتگو و پردازش فارسی" },
@@ -50,17 +56,22 @@ export default function Datacenter() {
 
   return (
     <>
-      {/* Fixed 3D corridor behind the whole page; camera walks with scroll */}
+      {/* Fixed backdrop behind the whole page: real 3D corridor on desktop,
+          lightweight 2D matrix rain on phones — camera walks with scroll */}
       <div className="scene-fixed" aria-hidden={false}>
         <ClientOnly fallback={<SceneFallback />}>
-          <Suspense fallback={<SceneFallback />}>
-            <DatacenterScene
-              mode="scroll"
-              model={model}
-              onPickModel={setModel}
-              onContact={() => setOpen(true)}
-            />
-          </Suspense>
+          {COMPACT ? (
+            <MatrixBackdrop />
+          ) : (
+            <Suspense fallback={<SceneFallback />}>
+              <DatacenterScene
+                mode="scroll"
+                model={model}
+                onPickModel={setModel}
+                onContact={() => setOpen(true)}
+              />
+            </Suspense>
+          )}
         </ClientOnly>
       </div>
 

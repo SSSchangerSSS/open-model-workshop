@@ -81,15 +81,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "هوش برتر" },
       { name: "description", content: "اتوماسیون و زیرساخت هوش مصنوعی" },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "هوش برتر" },
+      { property: "og:locale", content: "fa_IR" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "theme-color", content: "#050c07" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      {
-        rel: "stylesheet",
-        href: "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css",
-      },
+      // speed up third-party font CSS + font files
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap",
@@ -102,6 +103,33 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // session, hide it instantly (no flash on repeat visits / SPA navigations).
         children:
           "try{if(sessionStorage.getItem('intro'))document.documentElement.classList.add('intro-done')}catch(e){}",
+      },
+      {
+        // Structured data for search engines
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "ProfessionalService",
+              "@id": "https://ssschangersss.github.io/open-model-workshop/#org",
+              name: "هوش برتر",
+              url: "https://ssschangersss.github.io/open-model-workshop/",
+              description:
+                "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور هوش مصنوعی و بستن سخت‌افزار GPU",
+              areaServed: "IR",
+              knowsLanguage: ["fa", "en"],
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://ssschangersss.github.io/open-model-workshop/#site",
+              url: "https://ssschangersss.github.io/open-model-workshop/",
+              name: "هوش برتر",
+              inLanguage: "fa-IR",
+              publisher: { "@id": "https://ssschangersss.github.io/open-model-workshop/#org" },
+            },
+          ],
+        }),
       },
     ],
   }),

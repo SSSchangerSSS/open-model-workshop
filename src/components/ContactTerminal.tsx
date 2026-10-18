@@ -159,7 +159,10 @@ export function ContactTerminal({
             {copied ? "متن ایمیل کپی شد" : "کپی متن ایمیل"}
           </Button>
           {logStep >= 0 && (
-            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 font-mono text-[11px]" dir="ltr">
+            <div
+              className="rounded-md border border-primary/30 bg-primary/5 p-3 font-mono text-[11px]"
+              dir="ltr"
+            >
               {LOG_LINES.slice(0, logStep + 1).map((l, i) => (
                 <p
                   key={l}

@@ -5,8 +5,13 @@ import { Tilt, Magnetic } from "@/components/Interactive";
 import { lazy, Suspense, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { ArrowLeft, Check, ChevronDown, Clock, PackageCheck, Wrench } from "lucide-react";
+import MatrixBackdrop from "@/components/MatrixBackdrop";
+import { isCompactDevice } from "@/lib/device";
 
 const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
+
+/** Phones / low-power devices get the 2D rain, never the three.js chunk. */
+const COMPACT = isCompactDevice();
 
 export const Route = createFileRoute("/services")({
   head: () => ({
@@ -21,6 +26,9 @@ export const Route = createFileRoute("/services")({
       { property: "og:description", content: "فهرست کامل خدمات اتوماسیون و زیرساخت هوش مصنوعی." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/services" },
     ],
   }),
   component: Services,
@@ -62,7 +70,10 @@ function ServiceCard({
               UNIT-{String(i + 1).padStart(2, "0")}
             </span>
             {matched && (
-              <span className="font-mono text-[9px] text-primary border border-primary/50 rounded px-1.5 py-0.5 ms-2" dir="ltr">
+              <span
+                className="font-mono text-[9px] text-primary border border-primary/50 rounded px-1.5 py-0.5 ms-2"
+                dir="ltr"
+              >
                 MATCH
               </span>
             )}
@@ -132,7 +143,10 @@ function ServiceCard({
 
           {/* footer: status + live load meter */}
           <div className="mt-auto pt-5">
-            <div className="font-mono text-[10px] text-muted-foreground border-t border-primary/15 pt-3 space-y-2" dir="ltr">
+            <div
+              className="font-mono text-[10px] text-muted-foreground border-t border-primary/15 pt-3 space-y-2"
+              dir="ltr"
+            >
               <div className="flex items-center justify-between">
                 <span>
                   STATUS: <span className="text-primary">AVAILABLE</span> · SLA: 99.9%
@@ -157,12 +171,16 @@ function Services() {
 
   return (
     <Shell>
-      {/* 3D showroom behind the page (camera parked mid-corridor) */}
+      {/* 3D showroom behind the page — 2D matrix rain on phones */}
       <div className="scene-fixed" aria-hidden>
         <ClientOnly fallback={null}>
-          <Suspense fallback={null}>
-            <DatacenterScene mode="fixed" model={-1} />
-          </Suspense>
+          {COMPACT ? (
+            <MatrixBackdrop />
+          ) : (
+            <Suspense fallback={null}>
+              <DatacenterScene mode="fixed" model={-1} />
+            </Suspense>
+          )}
         </ClientOnly>
       </div>
 

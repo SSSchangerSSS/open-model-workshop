@@ -2,11 +2,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Shell } from "@/components/Shell";
 import { ContactTerminal } from "@/components/ContactTerminal";
 import { Reveal } from "@/components/Reveal";
-import { Copy, Check, Mail, MessageCircle, Phone, Timer, ShieldCheck, FileSearch, Rocket } from "lucide-react";
+import {
+  Copy,
+  Check,
+  Mail,
+  MessageCircle,
+  Phone,
+  Timer,
+  ShieldCheck,
+  FileSearch,
+  Rocket,
+} from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
+import MatrixBackdrop from "@/components/MatrixBackdrop";
+import { isCompactDevice } from "@/lib/device";
 
 const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
+
+/** Phones / low-power devices get the 2D rain, never the three.js chunk. */
+const COMPACT = isCompactDevice();
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -20,6 +35,9 @@ export const Route = createFileRoute("/contact")({
       { property: "og:description", content: "درخواست مشاوره رایگان." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/contact" },
     ],
   }),
   component: Contact,
@@ -102,7 +120,10 @@ function TehranClock() {
         <span className="time-blink text-primary/60">:{get("second")}</span>
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        {get("weekday")} — {weekend ? "دفتر تعطیل است؛ پیام بگذارید، صبح شنبه پاسخ می‌گیرید." : "دفتر باز است · پاسخ < ۲ ساعت کاری"}
+        {get("weekday")} —{" "}
+        {weekend
+          ? "دفتر تعطیل است؛ پیام بگذارید، صبح شنبه پاسخ می‌گیرید."
+          : "دفتر باز است · پاسخ < ۲ ساعت کاری"}
       </p>
     </div>
   );
@@ -119,7 +140,10 @@ function ChannelCard({ c }: { c: (typeof CHANNELS)[number] }) {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{c.label}</p>
-          <bdi dir={c.ltr ? "ltr" : "rtl"} className="block font-mono text-sm font-bold text-foreground truncate">
+          <bdi
+            dir={c.ltr ? "ltr" : "rtl"}
+            className="block font-mono text-sm font-bold text-foreground truncate"
+          >
             {c.value}
           </bdi>
         </div>
@@ -146,12 +170,16 @@ function ChannelCard({ c }: { c: (typeof CHANNELS)[number] }) {
 function Contact() {
   return (
     <Shell>
-      {/* 3D corridor entrance behind the terminal */}
+      {/* 3D corridor entrance behind the terminal — 2D matrix rain on phones */}
       <div className="scene-fixed" aria-hidden>
         <ClientOnly fallback={null}>
-          <Suspense fallback={null}>
-            <DatacenterScene mode="fixed" model={-1} />
-          </Suspense>
+          {COMPACT ? (
+            <MatrixBackdrop />
+          ) : (
+            <Suspense fallback={null}>
+              <DatacenterScene mode="fixed" model={-1} />
+            </Suspense>
+          )}
         </ClientOnly>
       </div>
 
@@ -181,7 +209,13 @@ function Contact() {
               ))}
             </div>
             <Reveal delay={120}>
-              <ClientOnly fallback={<div className="rack-card p-5 font-mono text-xs text-muted-foreground" dir="ltr">TEHRAN HQ // --:--:--</div>}>
+              <ClientOnly
+                fallback={
+                  <div className="rack-card p-5 font-mono text-xs text-muted-foreground" dir="ltr">
+                    TEHRAN HQ // --:--:--
+                  </div>
+                }
+              >
                 <TehranClock />
               </ClientOnly>
             </Reveal>
@@ -199,7 +233,9 @@ function Contact() {
             <p className="font-mono text-xs text-primary" dir="ltr">
               &gt; cat cooperation-cycle.md
             </p>
-            <h2 className="mt-3 text-2xl md:text-3xl font-black">از تماس تا تحویل، چه اتفاقی می‌افتد؟</h2>
+            <h2 className="mt-3 text-2xl md:text-3xl font-black">
+              از تماس تا تحویل، چه اتفاقی می‌افتد؟
+            </h2>
           </Reveal>
           <div className="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {CYCLE.map((s, i) => {
@@ -216,7 +252,9 @@ function Contact() {
                     <span className="grid place-items-center h-10 w-10 rounded-md border border-primary/30 bg-primary/10 text-primary transition group-hover:scale-110 group-hover:glow">
                       <Icon size={18} />
                     </span>
-                    <h3 className="mt-3 font-bold group-hover:text-primary transition-colors">{s.title}</h3>
+                    <h3 className="mt-3 font-bold group-hover:text-primary transition-colors">
+                      {s.title}
+                    </h3>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
                     <p className="mt-3 font-mono text-[10px] text-accent">{s.tag}</p>
                   </div>

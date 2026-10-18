@@ -3,7 +3,11 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, Html, Sparkles, Stars } from "@react-three/drei";
 import * as THREE from "three";
 import { CATEGORIES, CATEGORY_MAP, MODELS, type ModelCategory, type ModelSpec } from "@/lib/sizing";
-import { getPalette, makeLabelTexture, type Palette } from "./DatacenterScene";
+import { getPalette, makeLabelTexture, type Palette } from "@/lib/three-shared";
+import { isCompactDevice } from "@/lib/device";
+
+/** One-time device tier — phones/low-power get a lighter galaxy. */
+const COMPACT = isCompactDevice();
 
 /* ------------------------------------------------------------------ */
 /* Multi-galaxy layout — ONE full galaxy per category,                 */
@@ -430,7 +434,7 @@ function Galaxy({
         />
       </mesh>
       <Sparkles
-        count={44}
+        count={COMPACT ? 16 : 44}
         scale={[maxR * 2.1, 1.3, maxR * 2.1]}
         size={1.7}
         speed={0.2}
@@ -439,11 +443,7 @@ function Galaxy({
       />
 
       {/* core sun — hover shows the category name, click flies to this galaxy */}
-      <group
-        onPointerOver={coreOver}
-        onPointerOut={coreOut}
-        onClick={coreClick}
-      >
+      <group onPointerOver={coreOver} onPointerOut={coreOut} onClick={coreClick}>
         <mesh>
           <sphereGeometry args={[0.55, 32, 32]} />
           <meshBasicMaterial color={spec.color} toneMapped={false} />
@@ -489,7 +489,10 @@ function Galaxy({
             <p className="text-sm font-black whitespace-nowrap" style={{ color: spec.color }}>
               {spec.fa}
             </p>
-            <p className="mt-0.5 font-mono text-[11px] font-bold text-accent whitespace-nowrap" dir="ltr">
+            <p
+              className="mt-0.5 font-mono text-[11px] font-bold text-accent whitespace-nowrap"
+              dir="ltr"
+            >
               {spec.en} · {count} MODELS
             </p>
             <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground whitespace-nowrap">
@@ -751,7 +754,7 @@ function World({
       <Stars
         radius={220}
         depth={110}
-        count={5600}
+        count={COMPACT ? 2400 : 5600}
         factor={4.6}
         saturation={0.4}
         fade
@@ -850,14 +853,17 @@ export default function GalaxyScene({
 
   return (
     <Canvas
-      dpr={[1, 1.75]}
+      dpr={COMPACT ? [0.65, 1] : [1, 1.75]}
       camera={{
         position: [Math.sin(2.4) * overviewRad(), overviewH(), Math.cos(2.4) * overviewRad()],
         fov: 55,
         near: 0.1,
         far: 900,
       }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{
+        antialias: !COMPACT,
+        powerPreference: COMPACT ? "low-power" : "high-performance",
+      }}
       style={{ position: "absolute", inset: 0 }}
     >
       <Suspense

@@ -15,7 +15,10 @@ export function Reveal({
     if (!el) return;
     const io = new IntersectionObserver(
       ([e]) => e?.isIntersecting && (el.classList.add("in"), io.disconnect()),
-      { threshold: 0.15 },
+      // 1% visibility instead of 15% — very tall blocks (e.g. the 61-card
+      // mobile reference grid, ~10K px) can never reach 15% of their own
+      // height inside a phone viewport, which left them invisible forever.
+      { threshold: 0.01, rootMargin: "0px 0px -8% 0px" },
     );
     io.observe(el);
     return () => io.disconnect();

@@ -35,6 +35,9 @@ export const Route = createFileRoute("/hardware")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [
+      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/hardware" },
+    ],
   }),
   component: HardwarePage,
 });
@@ -352,9 +355,9 @@ function HardwarePage() {
               })}
             </div>
             <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
-              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ با نگه‌داشتن
-              نشانگر روی هستهٔ هر کهکشان، نام دسته را می‌بینید و کلیک روی هسته هم به همان کهکشان
-              می‌برد. کاربرد هر مدل داخل پنل همان ستاره نوشته شده است.
+              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ با
+              نگه‌داشتن نشانگر روی هستهٔ هر کهکشان، نام دسته را می‌بینید و کلیک روی هسته هم به همان
+              کهکشان می‌برد. کاربرد هر مدل داخل پنل همان ستاره نوشته شده است.
             </p>
           </div>
         </div>
@@ -447,7 +450,8 @@ function HardwarePage() {
           </p>
         </Reveal>
         <Reveal delay={120}>
-          <div className="mt-8 overflow-x-auto panel-glass rounded-xl">
+          {/* desktop: full table */}
+          <div className="mt-8 overflow-x-auto panel-glass rounded-xl hidden md:block">
             <table className="w-full text-sm min-w-[820px]">
               <thead>
                 <tr className="border-b border-primary/25 text-xs text-muted-foreground">
@@ -477,14 +481,14 @@ function HardwarePage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="font-bold">{m.fa}</span>
-                              <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+                              <span
+                                className="font-mono text-[10px] text-muted-foreground"
+                                dir="ltr"
+                              >
                                 {m.params}
                               </span>
                             </div>
-                            <span
-                              className="font-mono text-[10px] text-accent/90"
-                              dir="ltr"
-                            >
+                            <span className="font-mono text-[10px] text-accent/90" dir="ltr">
                               {m.en}
                             </span>
                           </div>
@@ -523,6 +527,63 @@ function HardwarePage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* mobile: card list — no cramped table, no horizontal scroll */}
+          <div className="mt-6 md:hidden grid gap-3">
+            {MODELS.map((m) => {
+              const cat = CATEGORY_MAP[m.cat];
+              return (
+                <article key={m.id} className="panel-glass rounded-xl p-4 border border-border/60">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
+                    />
+                    <h3 className="font-bold text-sm">{m.fa}</h3>
+                    <span className="font-mono text-[9px] text-muted-foreground" dir="ltr">
+                      {m.params}
+                    </span>
+                    <span
+                      className="ms-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                      style={{
+                        color: cat.color,
+                        border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
+                      }}
+                    >
+                      {cat.fa}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 font-mono text-[10px] text-accent/90 text-start" dir="ltr">
+                    {m.en} · {m.precision}
+                  </p>
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    {[5, 25, 100].map((u) => {
+                      const r = sizeFor(m, u);
+                      return (
+                        <div
+                          key={u}
+                          className="rounded-lg bg-muted/30 border border-border/50 p-2 text-center"
+                        >
+                          <p className="font-mono text-[9px] text-muted-foreground" dir="ltr">
+                            {u} USERS
+                          </p>
+                          <bdi dir="ltr" className="block font-mono text-[11px] font-bold mt-1">
+                            {r.gpus}× {GPUS[m.gpu].name}
+                          </bdi>
+                          <bdi
+                            dir="ltr"
+                            className="block font-mono text-[11px] text-primary mt-0.5"
+                          >
+                            ${r.priceTotal.toLocaleString("en-US")}
+                          </bdi>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </Reveal>
 

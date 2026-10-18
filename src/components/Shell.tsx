@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Menu, X } from "lucide-react";
 import { Intro } from "./Intro";
 
 const nav = [
@@ -11,6 +12,21 @@ const nav = [
 ] as const;
 
 export function Shell({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // lock scroll + close on Escape while the mobile drawer is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const key = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", key);
+    return () => {
+      document.body.style.overflow = overflow;
+      window.removeEventListener("keydown", key);
+    };
+  }, [menuOpen]);
+
   return (
     <div dir="rtl" className="min-h-screen flex flex-col">
       {/* Global CRT overlays */}
@@ -18,12 +34,14 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="crt-vignette" aria-hidden />
 
       <header className="border-b border-primary/25 bg-background/75 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="font-mono text-primary font-bold shrink-0">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="font-mono text-primary font-bold shrink-0 text-sm md:text-base">
             &gt; هوش برتر_
             <span className="cursor-blink" aria-hidden />
           </Link>
-          <nav className="flex flex-wrap justify-end gap-x-4 gap-y-1 md:gap-6 text-sm">
+
+          {/* desktop nav */}
+          <nav className="hidden md:flex items-center gap-6 text-sm">
             {nav.map((n) => (
               <Link
                 key={n.to}
@@ -36,6 +54,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </Link>
             ))}
           </nav>
+
           <div
             className="hidden md:flex items-center gap-3 font-mono text-[11px] shrink-0"
             dir="ltr"
@@ -46,12 +65,68 @@ export function Shell({ children }: { children: ReactNode }) {
             </span>
             <span className="text-muted-foreground">UPTIME 99.98%</span>
           </div>
+
+          {/* mobile hamburger */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="باز کردن منو"
+            aria-expanded={menuOpen}
+            className="md:hidden grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary bg-background/60"
+          >
+            <Menu size={20} />
+          </button>
         </div>
       </header>
 
+      {/* mobile drawer */}
+      {menuOpen && (
+        <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+          />
+          <nav className="absolute inset-y-0 right-0 w-[78%] max-w-xs border-s border-primary/30 bg-background/95 backdrop-blur-md p-6 flex flex-col gap-1 shadow-[0_0_60px_rgba(0,0,0,0.7)]">
+            <div className="flex items-center justify-between mb-6">
+              <span className="font-mono text-primary font-bold text-sm" dir="ltr">
+                &gt; menu_
+              </span>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="بستن منو"
+                className="grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            {nav.map((n, i) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3.5 text-base font-bold text-foreground hover:text-primary hover:border-primary/50 active:bg-primary/15 transition"
+              >
+                <span className="font-mono text-[10px] text-primary/60" dir="ltr">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                {n.label}
+              </Link>
+            ))}
+            <div className="mt-auto pt-6 flex items-center gap-2 font-mono text-[11px]" dir="ltr">
+              <span className="flex items-center gap-1.5 text-primary">
+                <span className="status-dot" />
+                SYS.ONLINE
+              </span>
+              <span className="text-muted-foreground">UPTIME 99.98%</span>
+            </div>
+          </nav>
+        </div>
+      )}
+
       <main className="flex-1">{children}</main>
 
-      <footer className="relative z-10 border-t border-primary/25 bg-background/80 backdrop-blur-md py-6 text-center text-sm text-muted-foreground font-mono">
+      <footer className="relative z-10 border-t border-primary/25 bg-background/80 backdrop-blur-md py-6 text-center text-sm text-muted-foreground font-mono px-4">
         <p dir="ltr" className="text-[11px] text-primary/70 mb-1">
           DC-01 // CORRIDOR-CAM: LIVE // 44 RACKS ONLINE
         </p>

@@ -42,6 +42,9 @@ export const Route = createFileRoute("/showcase")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [
+      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/showcase" },
+    ],
   }),
   component: Showcase,
 });
@@ -553,7 +556,9 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
                 key={l}
                 className="rounded-md border border-border bg-muted/30 px-2 py-3 text-center transition hover:border-primary/50 hover:bg-primary/5"
               >
-                <div className="text-base md:text-lg font-black text-primary leading-tight">{v}</div>
+                <div className="text-base md:text-lg font-black text-primary leading-tight">
+                  {v}
+                </div>
                 <div className="mt-1 text-[10px] leading-snug text-muted-foreground">{l}</div>
               </div>
             ))}
@@ -571,7 +576,10 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               </button>
             )}
             {running && (
-              <span className="inline-flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary" role="status">
+              <span
+                className="inline-flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary"
+                role="status"
+              >
                 <Loader2 size={15} className="animate-spin" />
                 در حال اجرا… گام {simStep + 1} از {c.steps.length}
               </span>
@@ -611,13 +619,23 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               <div className="mt-4 h-1 rounded-full bg-muted overflow-hidden" aria-hidden>
                 <div
                   className="h-full rounded-full bg-primary transition-all duration-500"
-                  style={{ width: `${(simStep / c.steps.length) * 100}%`, boxShadow: "0 0 12px var(--primary)" }}
+                  style={{
+                    width: `${(simStep / c.steps.length) * 100}%`,
+                    boxShadow: "0 0 12px var(--primary)",
+                  }}
                 />
               </div>
             )}
             <ol className="mt-4 space-y-2.5">
               {c.steps.map((s, i) => {
-                const state = simStep === -1 ? "idle" : i < simStep ? "done" : i === simStep && running ? "active" : "idle";
+                const state =
+                  simStep === -1
+                    ? "idle"
+                    : i < simStep
+                      ? "done"
+                      : i === simStep && running
+                        ? "active"
+                        : "idle";
                 return (
                   <li
                     key={i}
@@ -684,9 +702,9 @@ function Showcase() {
           نمونه‌کارهای <span className="text-gradient">واقعی</span> n8n و Flowise
         </h1>
         <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-          شانزده نیاز واقعی کسب‌وکارها که با اتوماسیون n8n و ایجنت‌های Flowise حل شده‌اند؛ نام مشتری‌ها
-          محرمانه است اما معماری، اعداد و نتایج واقعی‌اند. روی «شبیه‌سازی اجرا» بزنید تا ورک‌فلو
-          مرحله‌به‌مرحله جلوی چشم شما اجرا شود.
+          شانزده نیاز واقعی کسب‌وکارها که با اتوماسیون n8n و ایجنت‌های Flowise حل شده‌اند؛ نام
+          مشتری‌ها محرمانه است اما معماری، اعداد و نتایج واقعی‌اند. روی «شبیه‌سازی اجرا» بزنید تا
+          ورک‌فلو مرحله‌به‌مرحله جلوی چشم شما اجرا شود.
         </p>
 
         {/* stack filter */}

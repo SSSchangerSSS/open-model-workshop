@@ -8,18 +8,14 @@
 /* ------------------------------------------------------------------ */
 @font-face {
   font-family: "Vazir Matrix";
-  src:
-    url("./assets/fonts/VazirMatrix-Regular.woff2") format("woff2"),
-    url("./assets/fonts/VazirMatrix-Regular.ttf") format("truetype");
+  src: url("./assets/fonts/VazirMatrix-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Vazir Matrix";
-  src:
-    url("./assets/fonts/VazirMatrix-Bold.woff2") format("woff2"),
-    url("./assets/fonts/VazirMatrix-Bold.ttf") format("truetype");
+  src: url("./assets/fonts/VazirMatrix-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -38,7 +34,7 @@
   --color-border: var(--border);
   --color-input: var(--border);
   --color-ring: var(--primary);
-  --font-sans: "Vazir Matrix", "Vazirmatn", system-ui, sans-serif;
+  --font-sans: "Vazir Matrix", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 

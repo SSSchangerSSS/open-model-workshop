@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
 
+/*
+ * Site entry ("ورودی سایت") — the intro MUST be the first thing the user
+ * sees, and the home page reveals after it. So this overlay is rendered
+ * into the prerendered/SSG HTML itself (no client-only gate): the very
+ * first paint is the boot corridor, and the page sits behind it until
+ * the intro completes.
+ *
+ * - Animation of the boot log + brand is pure CSS (styles.css) so it runs
+ *   even before JS/hydration.
+ * - Repeat visits: an inline script in <head> (see __root.tsx) adds
+ *   `intro-done` to <html> BEFORE first paint, so the overlay never
+ *   flashes on navigations within the same session.
+ * - First visit: we set the sessionStorage flag immediately on mount,
+ *   add `intro-done` at ~3s (CSS fades the overlay out), then unmount.
+ */
+
 const RACKS = 10;
 
 const BOOT_LOG = [
@@ -42,25 +58,42 @@ function Rack({ side, i }: { side: "l" | "r"; i: number }) {
 }
 
 export function Intro() {
-  const [show, setShow] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const [logLines, setLogLines] = useState(0);
+  const [gone, setGone] = useState(false);
+
   useEffect(() => {
-    if (sessionStorage.getItem("intro")) return;
-    sessionStorage.setItem("intro", "1");
-    setShow(true);
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    BOOT_LOG.forEach((_, i) => timers.push(setTimeout(() => setLogLines(i + 1), 200 + i * 300)));
-    timers.push(setTimeout(() => setLeaving(true), 2300));
-    timers.push(setTimeout(() => setShow(false), 3000));
-    return () => timers.forEach(clearTimeout);
+    // `intro-done` is added pre-paint by the inline head script on repeat
+    // visits — then the overlay is already display:none via CSS.
+    if (document.documentElement.classList.contains("intro-done")) {
+      setGone(true);
+      return;
+    }
+    try {
+      sessionStorage.setItem("intro", "1");
+    } catch {
+      /* private mode */
+    }
+    const t1 = setTimeout(() => document.documentElement.classList.add("intro-done"), 3050);
+    const t2 = setTimeout(setGone, 3900);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
-  if (!show) return null;
+
+  const skip = () => {
+    try {
+      sessionStorage.setItem("intro", "1");
+    } catch {
+      /* noop */
+    }
+    document.documentElement.classList.add("intro-done");
+    setGone(true);
+  };
+
+  if (gone) return null;
+
   return (
-    <div
-      className={`fixed inset-0 z-[100] overflow-hidden bg-background transition-opacity duration-700 ${leaving ? "opacity-0" : ""}`}
-      style={{ perspective: "700px" }}
-    >
+    <div id="boot-overlay" style={{ perspective: "700px" }}>
       <div className="absolute inset-0 intro-fly" style={{ transformStyle: "preserve-3d" }}>
         {/* floor */}
         <div
@@ -87,20 +120,29 @@ export function Intro() {
           className="font-mono text-xs text-primary/90 text-left w-[320px] max-w-[80vw] h-[130px] overflow-hidden"
           dir="ltr"
         >
-          {BOOT_LOG.slice(0, logLines).map((l, i) => (
-            <div key={i} className={i === BOOT_LOG.length - 1 ? "mt-2 text-primary" : ""}>
+          {BOOT_LOG.map((l, i) => (
+            <div
+              key={i}
+              className={`boot-line ${i === BOOT_LOG.length - 1 ? "mt-2 text-primary" : ""}`}
+              style={{ animationDelay: `${0.2 + i * 0.32}s` }}
+            >
               {l}
             </div>
           ))}
         </div>
-        <h1 className="mt-2 text-5xl md:text-7xl font-black text-gradient">هوش برتر</h1>
-        <p className="mt-3 font-mono text-[11px] text-primary/70" dir="ltr">
+        <h1 className="boot-brand mt-2 text-5xl md:text-7xl font-black text-gradient">هوش برتر</h1>
+        <p
+          className="boot-line mt-3 font-mono text-[11px] text-primary/70"
+          dir="ltr"
+          style={{ animationDelay: "2.1s" }}
+        >
           scroll = walk · hover = inspect · type = talk
         </p>
       </div>
       <button
-        onClick={() => setShow(false)}
-        className="absolute bottom-8 left-8 rounded-lg border bg-card/70 px-4 py-2 text-sm text-muted-foreground hover:text-primary"
+        onClick={skip}
+        className="boot-line absolute bottom-8 left-8 rounded-lg border bg-card/70 px-4 py-2 text-sm text-muted-foreground hover:text-primary"
+        style={{ animationDelay: "1.2s", pointerEvents: "auto" }}
       >
         رد کردن ←
       </button>

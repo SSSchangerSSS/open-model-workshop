@@ -96,6 +96,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
+    scripts: [
+      {
+        // Runs BEFORE first paint: if the boot intro already played in this
+        // session, hide it instantly (no flash on repeat visits / SPA navigations).
+        children:
+          "try{if(sessionStorage.getItem('intro'))document.documentElement.classList.add('intro-done')}catch(e){}",
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

@@ -24,13 +24,13 @@ export const Route = createFileRoute("/hardware")({
       {
         name: "description",
         content:
-          "کهکشان سه‌بعدی ۳۹ مدل متن‌باز در ۸ دسته — از Kimi K3، DeepSeek V4 و GLM-5.3 تا Wan، TRELLIS و Hunyuan؛ روی سیارهٔ هر مدل کلیک کنید، کاربران همزمان را تنظیم کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
+          "کهکشان سه‌بعدی ۶۱ مدل متن‌باز در ۹ کهکشان — از Kimi K3، DeepSeek V4 و GLM-5.3 تا Wan، TRELLIS و Hunyuan؛ هر دسته یک کهکشان کامل، هر مدل یک ستاره. روی ستاره کلیک کنید، کاربران همزمان را تنظیم کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
       },
       { property: "og:title", content: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر" },
       {
         property: "og:description",
         content:
-          "گردش در کهکشان مدل‌های متن‌باز؛ محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
+          "گردش میان کهکشان‌های مدل‌های متن‌باز؛ محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا، تکست‌به‌مش و عکس‌به‌مش — بر اساس کاربران همزمان.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -42,6 +42,7 @@ export const Route = createFileRoute("/hardware")({
 const faDigits = (v: number | string) => String(v).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 
 const catCount = (c: ModelCategory) => MODELS.filter((m) => m.cat === c).length;
+const faNum = (n: number) => faDigits(n.toLocaleString("en-US"));
 
 function SizingPanel({
   index,
@@ -280,12 +281,12 @@ function HardwarePage() {
               کهکشان هوش
             </h1>
             <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
-              سی‌ونُه مدل متن‌باز در هشت مدار کهکشانی — از Kimi K3 و DeepSeek V4 و GLM-5.3 تا
-              Wan، TRELLIS و Hunyuan. روی سیارهٔ هر مدل کلیک کنید، کاربران همزمانتان را بگویید و
-              سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
+              شصت‌ویک مدل متن‌باز در نُه کهکشان — هر دسته یک کهکشان کامل و هر مدل یک ستاره در آن؛ از
+              چت‌بات و استدلال تا تولید تصویر و ویدیو، صدا، و تکست‌به‌مش و عکس‌به‌مش. روی ستارهٔ هر
+              مدل کلیک کنید، کاربران همزمانتان را بگویید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
             </p>
 
-            {/* category filter — خاموش/روشن کردن مدارهای کهکشان */}
+            {/* category filter — پرواز میان کهکشان‌ها */}
             <div className="pointer-events-auto mt-3 flex flex-wrap items-center gap-1.5 max-w-2xl">
               <button
                 onClick={() => {
@@ -335,13 +336,13 @@ function HardwarePage() {
               })}
             </div>
             <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
-              روی یک دسته بزنید تا دوربین به همان مدار پرواز کند و بقیهٔ کهکشان کم‌نور شود؛ کاربرد
-              هر مدل داخل پنل همان سیاره نوشته شده است.
+              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ کاربرد هر
+              مدل داخل پنل همان ستاره نوشته شده است.
             </p>
           </div>
         </div>
 
-        {/* pod navigation */}
+        {/* galaxy / star navigation */}
         <div
           className={`absolute z-10 inset-x-0 bottom-24 md:bottom-5 flex justify-center items-center gap-3 ${
             sel !== null ? "max-md:hidden" : ""
@@ -349,33 +350,54 @@ function HardwarePage() {
         >
           <button
             onClick={() => cycle(1)}
-            aria-label="سیارهٔ بعدی"
+            aria-label="ستارهٔ بعدی"
             className="panel-glass rounded-full p-2.5 text-primary hover:scale-110 transition"
           >
             <ChevronRight size={18} />
           </button>
           <div className="panel-glass rounded-full px-4 py-2.5 flex items-center gap-2.5">
-            {MODELS.map((m, i) => (
-              <button
-                key={m.id}
-                onClick={() => pick(i)}
-                aria-label={m.fa}
-                title={m.fa}
-                className="h-2.5 w-2.5 rounded-full transition-transform hover:scale-125"
-                style={
-                  sel === i
-                    ? { background: m.accent, boxShadow: `0 0 10px ${m.accent}` }
-                    : {
-                        border: "1px solid color-mix(in oklab, var(--primary) 45%, transparent)",
-                        opacity: catFilter && m.cat !== catFilter ? 0.25 : 1,
+            {catFilter === null
+              ? CATEGORIES.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => toggleCat(c.key)}
+                    aria-label={c.fa}
+                    title={`${c.fa} — ${catCount(c.key)} مدل`}
+                    className="h-2.5 w-2.5 rounded-full transition-transform hover:scale-125"
+                    style={{
+                      background: c.color,
+                      boxShadow: `0 0 9px ${c.color}`,
+                    }}
+                  />
+                ))
+              : MODELS.map((m, i) =>
+                  m.cat === catFilter ? (
+                    <button
+                      key={m.id}
+                      onClick={() => pick(i)}
+                      aria-label={m.fa}
+                      title={m.fa}
+                      className="h-2.5 w-2.5 rounded-full transition-transform hover:scale-125"
+                      style={
+                        sel === i
+                          ? { background: m.accent, boxShadow: `0 0 10px ${m.accent}` }
+                          : {
+                              border:
+                                "1px solid color-mix(in oklab, var(--primary) 45%, transparent)",
+                            }
                       }
-                }
-              />
-            ))}
+                    />
+                  ) : null,
+                )}
+            <span className="ms-1 ps-2 border-s border-primary/25 font-bold text-[10px] text-muted-foreground whitespace-nowrap">
+              {catFilter === null
+                ? `${faNum(MODELS.length)} ستاره در ${faNum(CATEGORIES.length)} کهکشان`
+                : `${faNum(catCount(catFilter))} ستاره`}
+            </span>
           </div>
           <button
             onClick={() => cycle(-1)}
-            aria-label="سیارهٔ قبلی"
+            aria-label="ستارهٔ قبلی"
             className="panel-glass rounded-full p-2.5 text-primary hover:scale-110 transition"
           >
             <ChevronLeft size={18} />
@@ -384,7 +406,7 @@ function HardwarePage() {
             className="hidden md:inline font-mono text-[10px] text-muted-foreground ms-2"
             dir="ltr"
           >
-            DRAG TO ORBIT · CLICK A PLANET
+            DRAG TO ORBIT · CLICK A STAR
           </span>
         </div>
 
@@ -404,7 +426,7 @@ function HardwarePage() {
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
             خلاصهٔ محاسبات کهکشان برای سه سناریوی ترافیک، به‌همراه دسته و کاربرد اصلی هر مدل. عدد
-            دقیق و پیکربندی اختصاصی‌تان را داخل کهکشان و با اسلایدر کاربران همزمان بگیرید.
+            دقیق و پیکربندی اختصاصی‌تان را داخل کهکشان‌ها و با اسلایدر کاربران همزمان بگیرید.
           </p>
         </Reveal>
         <Reveal delay={120}>
@@ -479,7 +501,7 @@ function HardwarePage() {
 
         {/* دسته‌بندی — راهنمای کوتاه دسته‌ها */}
         <Reveal delay={140}>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {CATEGORIES.map((c) => (
               <div key={c.key} className="panel-glass rounded-xl p-4">
                 <div className="flex items-center gap-2">

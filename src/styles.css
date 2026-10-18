@@ -193,6 +193,53 @@ html {
   }
 }
 
+/* ---------- SITE ENTRY (boot intro) ---------- */
+/* Rendered into the prerendered HTML so the FIRST paint is the intro;
+   the home page reveals only after it completes. */
+#boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  background: var(--color-background);
+  transition:
+    opacity 0.7s ease,
+    visibility 0s linear 0.7s;
+}
+html.intro-done #boot-overlay {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.boot-line {
+  opacity: 0;
+  animation: boot-reveal 0.01s linear forwards;
+}
+@keyframes boot-reveal {
+  to {
+    opacity: 1;
+  }
+}
+.boot-brand {
+  animation:
+    boot-reveal 0.01s linear 1.9s forwards,
+    brand-glow 2.6s ease-in-out 1.9s infinite;
+}
+@keyframes brand-glow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px color-mix(in oklab, var(--primary) 45%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 26px color-mix(in oklab, var(--primary) 75%, transparent));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #boot-overlay {
+    display: none;
+  }
+}
+
 /* ---------- MATRIX 3D SCENE LAYOUT ---------- */
 
 /* Fixed full-viewport WebGL corridor behind the whole page */

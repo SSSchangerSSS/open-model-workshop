@@ -14,14 +14,7 @@
 
 import { MODELS } from "./models";
 
-export type GpuKey =
-  | "rtx4090"
-  | "rtx5090"
-  | "l40s"
-  | "a100"
-  | "h100"
-  | "h200"
-  | "b200";
+export type GpuKey = "rtx4090" | "rtx5090" | "l40s" | "a100" | "h100" | "h200" | "b200";
 
 export type Gpu = {
   name: string;
@@ -41,19 +34,12 @@ export const GPUS: Record<GpuKey, Gpu> = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Categories — 8 galaxy sectors: text, agent, reasoning, image, video,*/
-/* audio, 3D and embedding                                             */
+/* Categories — 9 galaxies: text, vision, agent, reasoning, image,     */
+/* video, audio, 3D and embedding                                      */
 /* ------------------------------------------------------------------ */
 
 export type ModelCategory =
-  | "llm"
-  | "agentic"
-  | "reasoning"
-  | "image"
-  | "video"
-  | "audio"
-  | "threed"
-  | "embed";
+  "llm" | "vlm" | "agentic" | "reasoning" | "image" | "video" | "audio" | "threed" | "embed";
 
 export type CategorySpec = {
   key: ModelCategory;
@@ -70,6 +56,13 @@ export const CATEGORIES: CategorySpec[] = [
     en: "LLM",
     color: "#4dff88",
     descFa: "گفت‌وگو، نویسندگی، خلاصه‌سازی و پاسخ به پرسش",
+  },
+  {
+    key: "vlm",
+    fa: "بینایی و چندوجهی",
+    en: "VISION",
+    color: "#93c5fd",
+    descFa: "فهم عکس، جدول، فرم و سند — ورودی تصویری برای چت و RAG",
   },
   {
     key: "agentic",
@@ -127,7 +120,7 @@ export const CATEGORY_MAP: Record<ModelCategory, CategorySpec> = Object.fromEntr
 ) as Record<ModelCategory, CategorySpec>;
 
 /* ------------------------------------------------------------------ */
-/* Model catalog — lives in models.ts (39 open-weight models)          */
+/* Model catalog — lives in models.ts (61 open-weight models)          */
 /* ------------------------------------------------------------------ */
 
 export { MODELS };

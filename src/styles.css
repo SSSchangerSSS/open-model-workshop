@@ -631,6 +631,18 @@ html.intro-done #boot-overlay {
   }
 }
 
+/* Focused-galaxy compact bar slides in as the big header copy collapses */
+@keyframes fadeSlideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Compare slider (manual vs automated) — RTL: قبل right, بعد left */
 .compare-wrap {
   /* pan-y keeps vertical page scroll working on touch; horizontal drags still drag */

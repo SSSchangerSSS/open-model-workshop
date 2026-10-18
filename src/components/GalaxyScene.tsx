@@ -160,7 +160,6 @@ function ModelStar({
   p,
   selected,
   dimmed,
-  labelsOn,
   matrixFont,
   reduced,
   onPick,
@@ -171,7 +170,6 @@ function ModelStar({
   p: Palette;
   selected: boolean;
   dimmed: boolean;
-  labelsOn: boolean;
   matrixFont: boolean;
   reduced: boolean;
   onPick: (i: number) => void;
@@ -254,9 +252,11 @@ function ModelStar({
 
   const labelW = (tex: THREE.CanvasTexture, h: number) =>
     Math.min(3.2, h * (tex.image.width / tex.image.height));
-  const active = labelsOn || hover || selected;
+  // Labels only appear for a star you are interacting with — FA name + EN name
+  // together on every star was unreadable once the camera entered a galaxy.
+  const active = hover || selected;
   // English names stay visible on the star chart even in overview;
-  // Persian names join in when the galaxy is focused or the star is hot.
+  // Persian names join in only when the star is hovered or selected.
   const showFa = active && !dimmed;
   const showEn = !dimmed;
 
@@ -299,7 +299,13 @@ function ModelStar({
         {showFa && (
           <mesh>
             <planeGeometry args={[labelW(texs.fa, 0.3), 0.3]} />
-            <meshBasicMaterial map={texs.fa} transparent opacity={1} toneMapped={false} />
+            <meshBasicMaterial
+              map={texs.fa}
+              transparent
+              depthWrite={false}
+              opacity={1}
+              toneMapped={false}
+            />
           </mesh>
         )}
         <mesh position={[0, showFa ? -0.34 : 0, 0]}>
@@ -307,6 +313,7 @@ function ModelStar({
           <meshBasicMaterial
             map={texs.en}
             transparent
+            depthWrite={false}
             opacity={active ? 1 : 0.62}
             toneMapped={false}
           />
@@ -509,7 +516,8 @@ function Galaxy({
         color={spec.color}
       />
 
-      {/* category sign — always readable, floats above the core */}
+      {/* category sign — readable in overview, fades out when you fly inside
+          this galaxy so it never fights with the star labels below it */}
       <Billboard position={[0, maxR * 0.62 + 1.35, 0]}>
         <mesh>
           <planeGeometry
@@ -518,7 +526,8 @@ function Galaxy({
           <meshBasicMaterial
             map={texs.fa}
             transparent
-            opacity={dimmed ? 0.22 : 1}
+            depthWrite={false}
+            opacity={dimmed ? 0.22 : filterActive ? 0.14 : 1}
             toneMapped={false}
           />
         </mesh>
@@ -529,7 +538,8 @@ function Galaxy({
           <meshBasicMaterial
             map={texs.en}
             transparent
-            opacity={dimmed ? 0.14 : 0.92}
+            depthWrite={false}
+            opacity={dimmed ? 0.14 : filterActive ? 0.1 : 0.92}
             toneMapped={false}
           />
         </mesh>
@@ -782,7 +792,6 @@ function World({
                 p={p}
                 selected={focus === i}
                 dimmed={filter !== null && m.cat !== filter}
-                labelsOn={filter === c.key}
                 matrixFont={matrixFont}
                 reduced={reduced}
                 onPick={onPick}

@@ -267,6 +267,12 @@ function HardwarePage() {
     setSel((s) => (s !== null && next !== null && MODELS[s]?.cat !== next ? null : s));
   };
 
+  // When a galaxy is focused (or a star panel is open) the fixed header copy
+  // collapses away so it never collides with the 3D labels underneath.
+  const focused = catFilter !== null;
+  const collapsed = focused || sel !== null;
+  const activeCat = focused ? CATEGORY_MAP[catFilter] : null;
+
   return (
     <Shell>
       {/* ---------- 3D showroom viewport ---------- */}
@@ -290,75 +296,125 @@ function HardwarePage() {
           </Suspense>
         </ClientOnly>
 
-        {/* header copy over the scene */}
+        {/* header copy over the scene — collapses when a galaxy/panel takes over */}
         <div className="pointer-events-none absolute top-5 inset-x-0 z-10">
           <div className="max-w-6xl mx-auto px-6">
-            <p className="font-mono text-xs text-primary" dir="ltr">
-              &gt; cd /galaxy/models --explore
-            </p>
-            <h1 className="mt-2 text-3xl md:text-5xl font-black [text-shadow:0_0_32px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
-              کهکشان هوش
-            </h1>
-            <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
-              شصت‌ویک مدل متن‌باز در نُه کهکشان — هر دسته یک کهکشان کامل و هر مدل یک ستاره در آن؛ از
-              چت‌بات و استدلال تا تولید تصویر و ویدیو، صدا، و تکست‌به‌مش و عکس‌به‌مش. روی ستارهٔ هر
-              مدل کلیک کنید، کاربران همزمانتان را بگویید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
-            </p>
+            <div
+              aria-hidden={collapsed}
+              className={`transition-all duration-500 ease-out overflow-hidden ${
+                collapsed
+                  ? "max-h-0 opacity-0 -translate-y-3"
+                  : "max-h-[560px] opacity-100 translate-y-0"
+              }`}
+            >
+              <p className="font-mono text-xs text-primary" dir="ltr">
+                &gt; cd /galaxy/models --explore
+              </p>
+              <h1 className="mt-2 text-3xl md:text-5xl font-black [text-shadow:0_0_32px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
+                کهکشان هوش
+              </h1>
+              <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
+                شصت‌ویک مدل متن‌باز در نُه کهکشان — هر دسته یک کهکشان کامل و هر مدل یک ستاره در آن؛
+                از چت‌بات و استدلال تا تولید تصویر و ویدیو، صدا، و تکست‌به‌مش و عکس‌به‌مش. روی
+                ستارهٔ هر مدل کلیک کنید، کاربران همزمانتان را بگویید و سخت‌افزار و قیمت دلاری را
+                همان‌جا ببینید.
+              </p>
 
-            {/* category filter — پرواز میان کهکشان‌ها */}
-            <div className="pointer-events-auto mt-3 flex flex-wrap items-center gap-1.5 max-w-2xl">
-              <button
-                onClick={() => {
-                  setCatFilter(null);
-                  setSel(null);
-                }}
-                className={`text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
-                  catFilter === null
-                    ? "border-primary bg-primary/15 text-primary"
-                    : "border-border text-muted-foreground hover:text-primary hover:border-primary/50"
-                }`}
-              >
-                همهٔ دسته‌ها
-              </button>
-              {CATEGORIES.map((c) => {
-                const active = catFilter === c.key;
-                return (
-                  <button
-                    key={c.key}
-                    onClick={() => toggleCat(c.key)}
-                    title={c.descFa}
-                    className={`flex items-center gap-1.5 text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
-                      active
-                        ? "text-foreground"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                    style={
-                      active
-                        ? {
-                            borderColor: c.color,
-                            background: `color-mix(in oklab, ${c.color} 16%, transparent)`,
-                            boxShadow: `0 0 12px color-mix(in oklab, ${c.color} 35%, transparent)`,
-                          }
-                        : undefined
-                    }
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
-                    />
-                    {c.fa}
-                    <span className="font-mono text-[9px] opacity-70" dir="ltr">
-                      ×{faDigits(catCount(c.key))}
-                    </span>
-                  </button>
-                );
-              })}
+              {/* category filter — پرواز میان کهکشان‌ها */}
+              <div className="pointer-events-auto mt-3 flex flex-wrap items-center gap-1.5 max-w-2xl">
+                <button
+                  onClick={() => {
+                    setCatFilter(null);
+                    setSel(null);
+                  }}
+                  className={`text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
+                    catFilter === null
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border text-muted-foreground hover:text-primary hover:border-primary/50"
+                  }`}
+                >
+                  همهٔ دسته‌ها
+                </button>
+                {CATEGORIES.map((c) => {
+                  const active = catFilter === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => toggleCat(c.key)}
+                      title={c.descFa}
+                      className={`flex items-center gap-1.5 text-[11px] font-bold rounded-full border px-2.5 py-1 transition ${
+                        active
+                          ? "text-foreground"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                      style={
+                        active
+                          ? {
+                              borderColor: c.color,
+                              background: `color-mix(in oklab, ${c.color} 16%, transparent)`,
+                              boxShadow: `0 0 12px color-mix(in oklab, ${c.color} 35%, transparent)`,
+                            }
+                          : undefined
+                      }
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: c.color, boxShadow: `0 0 6px ${c.color}` }}
+                      />
+                      {c.fa}
+                      <span className="font-mono text-[9px] opacity-70" dir="ltr">
+                        ×{faDigits(catCount(c.key))}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
+                روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ با
+                نگه‌داشتن نشانگر روی هستهٔ هر کهکشان، نام دسته را می‌بینید و کلیک روی هسته هم به
+                همان کهکشان می‌برد. کاربرد هر مدل داخل پنل همان ستاره نوشته شده است.
+              </p>
             </div>
-            <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
-              روی یک کهکشان بزنید تا دوربین به همان کهکشان پرواز کند و بقیه کم‌نور شوند؛ با
-              نگه‌داشتن نشانگر روی هستهٔ هر کهکشان، نام دسته را می‌بینید و کلیک روی هسته هم به همان
-              کهکشان می‌برد. کاربرد هر مدل داخل پنل همان ستاره نوشته شده است.
-            </p>
+
+            {/* focused mode — compact bar instead of the full copy:
+                back to overview + name of the galaxy you are inside */}
+            {focused && activeCat && (
+              <div
+                className="pointer-events-auto mt-3 flex flex-wrap items-center gap-2"
+                style={{ animation: "fadeSlideDown 0.45s ease-out both" }}
+              >
+                <button
+                  onClick={() => {
+                    setCatFilter(null);
+                    setSel(null);
+                  }}
+                  className="flex items-center gap-1.5 rounded-full border border-primary/50 bg-primary/10 px-3 py-1.5 text-[11px] font-bold text-primary backdrop-blur transition hover:bg-primary/20"
+                >
+                  <ChevronRight size={14} />
+                  همهٔ کهکشان‌ها
+                </button>
+                <span
+                  className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold backdrop-blur"
+                  style={{
+                    color: activeCat.color,
+                    borderColor: `color-mix(in oklab, ${activeCat.color} 45%, transparent)`,
+                    background: `color-mix(in oklab, ${activeCat.color} 12%, transparent)`,
+                  }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{
+                      background: activeCat.color,
+                      boxShadow: `0 0 6px ${activeCat.color}`,
+                    }}
+                  />
+                  {activeCat.fa}
+                  <span className="font-mono text-[9px] opacity-70" dir="ltr">
+                    ×{faDigits(catCount(catFilter!))}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

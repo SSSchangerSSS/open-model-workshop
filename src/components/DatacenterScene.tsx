@@ -9,7 +9,7 @@ import { MatrixRain } from "./MatrixRain";
 
 export type SceneMode = "scroll" | "fixed";
 
-type Palette = {
+export type Palette = {
   void: string;
   metal: string;
   green: string;

@@ -15,22 +15,22 @@ import {
   type ModelCategory,
 } from "@/lib/sizing";
 
-const HardwareScene = lazy(() => import("@/components/HardwareScene"));
+const GalaxyScene = lazy(() => import("@/components/GalaxyScene"));
 
 export const Route = createFileRoute("/hardware")({
   head: () => ({
     meta: [
-      { title: "سالن سخت‌افزار | هوش برتر" },
+      { title: "کهکشان هوش | هوش برتر" },
       {
         name: "description",
         content:
-          "در سالن سه‌بعدی سرورهای ۱۵ مدل متن‌باز را در ۷ دسته ببینید — چت، ایجنت، استدلال، تصویر، ویدیو، صوت و RAG؛ کاربران همزمان را وارد کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
+          "کهکشان سه‌بعدی ۳۹ مدل متن‌باز در ۸ دسته — از Kimi K3، DeepSeek V4 و GLM-5.3 تا Wan، TRELLIS و Hunyuan؛ روی سیارهٔ هر مدل کلیک کنید، کاربران همزمان را تنظیم کنید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.",
       },
-      { property: "og:title", content: "سالن سخت‌افزار سه‌بعدی | هوش برتر" },
+      { property: "og:title", content: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر" },
       {
         property: "og:description",
         content:
-          "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار مدل‌های متن‌باز — از چت و ایجنت تا تصویر، ویدیو و صوت — بر اساس کاربران همزمان.",
+          "گردش در کهکشان مدل‌های متن‌باز؛ محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -261,12 +261,12 @@ function HardwarePage() {
             fallback={
               <div className="absolute inset-0 grid place-items-center">
                 <span className="font-mono text-primary text-xs animate-pulse">
-                  booting showroom…
+                  booting galaxy…
                 </span>
               </div>
             }
           >
-            <HardwareScene focus={sel ?? -1} catFilter={catFilter} onPick={pick} />
+            <GalaxyScene focus={sel ?? -1} catFilter={catFilter} onPick={pick} />
           </Suspense>
         </ClientOnly>
 
@@ -274,18 +274,18 @@ function HardwarePage() {
         <div className="pointer-events-none absolute top-5 inset-x-0 z-10">
           <div className="max-w-6xl mx-auto px-6">
             <p className="font-mono text-xs text-primary" dir="ltr">
-              &gt; cd /showroom/hardware --configure
+              &gt; cd /galaxy/models --explore
             </p>
             <h1 className="mt-2 text-3xl md:text-5xl font-black [text-shadow:0_0_32px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
-              سالن سخت‌افزار
+              کهکشان هوش
             </h1>
             <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
-              پانزده مدل متن‌باز در هفت دسته — از چت و عامل هوشمند تا تصویر، ویدیو و صوت. روی هر
-              سرور کلیک کنید، کاربران همزمانتان را بگویید و سخت‌افزار و قیمت دلاری را همان‌جا
-              ببینید.
+              سی‌ونُه مدل متن‌باز در هشت مدار کهکشانی — از Kimi K3 و DeepSeek V4 و GLM-5.3 تا
+              Wan، TRELLIS و Hunyuan. روی سیارهٔ هر مدل کلیک کنید، کاربران همزمانتان را بگویید و
+              سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
             </p>
 
-            {/* category filter — روشن/خاموش کردن بخش‌های سالن */}
+            {/* category filter — خاموش/روشن کردن مدارهای کهکشان */}
             <div className="pointer-events-auto mt-3 flex flex-wrap items-center gap-1.5 max-w-2xl">
               <button
                 onClick={() => {
@@ -335,8 +335,8 @@ function HardwarePage() {
               })}
             </div>
             <p className="mt-1.5 hidden md:block text-[10px] text-muted-foreground/70">
-              روی یک دسته بزنید تا فقط سرورهای همان بخش روشن بمانند؛ کاربرد هر مدل داخل پنل همان
-              سرور نوشته شده است.
+              روی یک دسته بزنید تا دوربین به همان مدار پرواز کند و بقیهٔ کهکشان کم‌نور شود؛ کاربرد
+              هر مدل داخل پنل همان سیاره نوشته شده است.
             </p>
           </div>
         </div>
@@ -349,7 +349,7 @@ function HardwarePage() {
         >
           <button
             onClick={() => cycle(1)}
-            aria-label="سرور بعدی"
+            aria-label="سیارهٔ بعدی"
             className="panel-glass rounded-full p-2.5 text-primary hover:scale-110 transition"
           >
             <ChevronRight size={18} />
@@ -375,7 +375,7 @@ function HardwarePage() {
           </div>
           <button
             onClick={() => cycle(-1)}
-            aria-label="سرور قبلی"
+            aria-label="سیارهٔ قبلی"
             className="panel-glass rounded-full p-2.5 text-primary hover:scale-110 transition"
           >
             <ChevronLeft size={18} />
@@ -384,7 +384,7 @@ function HardwarePage() {
             className="hidden md:inline font-mono text-[10px] text-muted-foreground ms-2"
             dir="ltr"
           >
-            DRAG TO ORBIT · CLICK A POD
+            DRAG TO ORBIT · CLICK A PLANET
           </span>
         </div>
 
@@ -403,8 +403,8 @@ function HardwarePage() {
             جدول مرجع: <span className="text-gradient">سخت‌افزار لازم</span> برای هر مدل
           </h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            خلاصهٔ محاسبات سالن سه‌بعدی برای سه سناریوی ترافیک، به‌همراه دسته و کاربرد اصلی هر مدل.
-            عدد دقیق و پیکربندی اختصاصی‌تان را داخل سالن و با اسلایدر کاربران همزمان بگیرید.
+            خلاصهٔ محاسبات کهکشان برای سه سناریوی ترافیک، به‌همراه دسته و کاربرد اصلی هر مدل. عدد
+            دقیق و پیکربندی اختصاصی‌تان را داخل کهکشان و با اسلایدر کاربران همزمان بگیرید.
           </p>
         </Reveal>
         <Reveal delay={120}>

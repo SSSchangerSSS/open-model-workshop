@@ -1,9 +1,10 @@
 import { createFileRoute, Link, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { isCompactDevice } from "@/lib/device";
 import {
   CATEGORIES,
   CATEGORY_MAP,
@@ -16,6 +17,86 @@ import {
 } from "@/lib/sizing";
 
 const GalaxyScene = lazy(() => import("@/components/GalaxyScene"));
+
+/* The three.js chunk (~950KB / ~240KB gzip) is the single heaviest asset on
+   the site. Keep it OFF the first paint of this route on every device: hold
+   a pure-CSS starfield until the browser is idle, then fetch + boot the
+   galaxy. On a Galaxy M12 this turns a multi-second freeze into an instant
+   page with a graceful upgrade. */
+const COMPACT = isCompactDevice();
+
+function useGalaxyReveal() {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    let t: number | undefined;
+    const fire = () => setReady(true);
+    if (w.requestIdleCallback) w.requestIdleCallback(fire, { timeout: COMPACT ? 3000 : 1800 });
+    else t = window.setTimeout(fire, COMPACT ? 2400 : 1200);
+    return () => {
+      if (t !== undefined) clearTimeout(t);
+    };
+  }, []);
+  return ready;
+}
+
+/** Pure-CSS deep-space placeholder — zero JS, zero WebGL, near-zero paint cost. */
+function GalaxyPlaceholder({ booting }: { booting?: boolean }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[#050c07]" aria-hidden>
+      <div className="hw-stars" />
+      <div
+        className="hw-nebula"
+        style={{
+          inset: "12% 30% 30% 8%",
+          background: "radial-gradient(closest-side, rgba(77,255,136,0.16), transparent)",
+        }}
+      />
+      <div
+        className="hw-nebula"
+        style={{
+          inset: "40% 8% 14% 55%",
+          background: "radial-gradient(closest-side, rgba(147,197,253,0.13), transparent)",
+        }}
+      />
+      <div
+        className="hw-nebula"
+        style={{
+          inset: "55% 55% 8% 15%",
+          background: "radial-gradient(closest-side, rgba(177,140,255,0.12), transparent)",
+        }}
+      />
+      {booting && (
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-primary text-xs animate-pulse">
+          booting galaxy…
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Holds the CSS starfield until idle, then boots the real 3D galaxy. */
+function GalaxyReveal(props: {
+  sel: number | null;
+  catFilter: ModelCategory | null;
+  pick: (i: number) => void;
+  toggleCat: (c: ModelCategory) => void;
+}) {
+  const ready = useGalaxyReveal();
+  if (!ready) return <GalaxyPlaceholder />;
+  return (
+    <Suspense fallback={<GalaxyPlaceholder booting />}>
+      <GalaxyScene
+        focus={props.sel ?? -1}
+        catFilter={props.catFilter}
+        onPick={props.pick}
+        onCorePick={props.toggleCat}
+      />
+    </Suspense>
+  );
+}
 
 export const Route = createFileRoute("/hardware")({
   head: () => ({
@@ -287,12 +368,7 @@ function HardwarePage() {
               </div>
             }
           >
-            <GalaxyScene
-              focus={sel ?? -1}
-              catFilter={catFilter}
-              onPick={pick}
-              onCorePick={toggleCat}
-            />
+            <GalaxyReveal sel={sel} catFilter={catFilter} pick={pick} toggleCat={toggleCat} />
           </Suspense>
         </ClientOnly>
 

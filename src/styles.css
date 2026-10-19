@@ -799,3 +799,40 @@ html.intro-done #boot-overlay {
     transform: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* /hardware — pure-CSS placeholder starfield shown while the three.js */
+/* chunk defers (idle reveal). Zero JS, zero WebGL, near-zero paint.   */
+/* ------------------------------------------------------------------ */
+.hw-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 12% 22%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1.1px 1.1px at 68% 14%, rgba(190, 242, 214, 0.8), transparent 60%),
+    radial-gradient(1.6px 1.6px at 84% 38%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1px 1px at 34% 58%, rgba(255, 255, 255, 0.65), transparent 60%),
+    radial-gradient(1.3px 1.3px at 52% 80%, rgba(190, 242, 214, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 8% 74%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.2px 1.2px at 91% 82%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(0.9px 0.9px at 46% 12%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1.1px 1.1px at 24% 42%, rgba(147, 197, 253, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 76% 64%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1.5px 1.5px at 60% 46%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(0.9px 0.9px at 94% 8%, rgba(190, 242, 214, 0.6), transparent 60%);
+  background-size: 340px 340px;
+  background-repeat: repeat;
+  animation: hw-twinkle 5.5s ease-in-out infinite alternate;
+}
+.hw-nebula {
+  position: absolute;
+  filter: blur(6px);
+}
+@keyframes hw-twinkle {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -2,6 +2,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Billboard, Html, Sparkles, Stars } from "@react-three/drei";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { CATEGORIES, CATEGORY_MAP, MODELS, type ModelCategory, type ModelSpec } from "@/lib/sizing";
 import { getPalette, makeLabelTexture, type Palette } from "@/lib/three-shared";
 import { isCompactDevice } from "@/lib/device";
@@ -151,6 +152,23 @@ function discTexture(color: string): THREE.CanvasTexture {
 }
 
 /* ------------------------------------------------------------------ */
+/* Frame governor — compact tier renders on demand at a fixed 30fps    */
+/* instead of a full 60fps rAF loop: half the GPU/CPU work per second, */
+/* which is the difference between smooth and laggy on a Helio G80.    */
+/* (Browsers throttle the interval to ~1Hz in hidden tabs — bonus.)    */
+/* ------------------------------------------------------------------ */
+
+function FrameGovernor({ fps, active }: { fps: number; active: boolean }) {
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => invalidate(), 1000 / fps);
+    return () => window.clearInterval(id);
+  }, [active, fps, invalidate]);
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
 /* ModelStar — one open-weight model orbiting inside its galaxy        */
 /* ------------------------------------------------------------------ */
 
@@ -187,26 +205,29 @@ function ModelStar({
   const group = useRef<THREE.Group>(null);
   const mesh = useRef<THREE.Mesh>(null);
   const selRing = useRef<THREE.Mesh>(null);
-  const mat = useRef<THREE.MeshStandardMaterial>(null);
+  const mat = useRef<THREE.MeshStandardMaterial | THREE.MeshLambertMaterial>(null);
   const ang = useRef(a);
   const [hover, setHover] = useState(false);
 
   const glow = useMemo(() => glowTexture(m.accent), [m.accent]);
   const enLabel = m.en.includes(m.params) ? m.en : `${m.en} · ${m.params}`;
-  const texs = useMemo(
-    () => ({
-      fa: makeLabelTexture(m.fa, p.green, matrixFont, 30),
-      en: makeLabelTexture(enLabel, m.accent, false, 24),
-    }),
-    [m, p.green, matrixFont, enLabel],
+  // EN label is always visible → generate eagerly, at half resolution on
+  // compact tier (122 canvas textures at full res cost tens of MB of GPU
+  // memory on a 4GB-RAM phone).
+  const enTex = useMemo(
+    () => makeLabelTexture(enLabel, m.accent, false, COMPACT ? 16 : 24),
+    [enLabel, m.accent],
   );
-  useEffect(
-    () => () => {
-      texs.fa.dispose();
-      texs.en.dispose();
-    },
-    [texs],
-  );
+  useEffect(() => () => enTex.dispose(), [enTex]);
+
+  // FA label is only ever shown while hovering/selecting → generate it lazily
+  // on first need. Saves 61 canvas + GPU uploads on scene boot for phones.
+  const [faTex, setFaTex] = useState<THREE.CanvasTexture | null>(null);
+  useEffect(() => {
+    if (!(hover || selected) || dimmed || faTex) return;
+    setFaTex(makeLabelTexture(m.fa, p.green, matrixFont, COMPACT ? 20 : 30));
+  }, [hover, selected, dimmed, faTex, m.fa, p.green, matrixFont]);
+  useEffect(() => () => faTex?.dispose(), [faTex]);
 
   useEffect(() => {
     register(`m:${i}`, group.current);
@@ -250,7 +271,7 @@ function ModelStar({
     document.body.style.cursor = "auto";
   };
 
-  const labelW = (tex: THREE.CanvasTexture, h: number) =>
+  const labelW = (tex: { image: { width: number; height: number } }, h: number) =>
     Math.min(3.2, h * (tex.image.width / tex.image.height));
   // Labels only appear for a star you are interacting with — FA name + EN name
   // together on every star was unreadable once the camera entered a galaxy.
@@ -262,18 +283,29 @@ function ModelStar({
 
   return (
     <group ref={group}>
-      {/* star body — facet count halved on compact tier */}
+      {/* star body — facet count halved on compact tier; Lambert instead of
+          PBR Standard on phones (Mali-G52 fragment budget, no PBR lights here) */}
       <mesh ref={mesh} onPointerOver={over} onPointerOut={out} onClick={pick}>
-        <sphereGeometry args={[size, COMPACT ? 20 : 36, COMPACT ? 20 : 36]} />
-        <meshStandardMaterial
-          ref={mat}
-          color="#07100b"
-          emissive={m.accent}
-          emissiveIntensity={0.75}
-          roughness={0.4}
-          metalness={0.1}
-          toneMapped={false}
-        />
+        <sphereGeometry args={[size, COMPACT ? 18 : 36, COMPACT ? 18 : 36]} />
+        {COMPACT ? (
+          <meshLambertMaterial
+            ref={mat}
+            color="#07100b"
+            emissive={m.accent}
+            emissiveIntensity={0.75}
+            toneMapped={false}
+          />
+        ) : (
+          <meshStandardMaterial
+            ref={mat}
+            color="#07100b"
+            emissive={m.accent}
+            emissiveIntensity={0.75}
+            roughness={0.4}
+            metalness={0.1}
+            toneMapped={false}
+          />
+        )}
       </mesh>
 
       {/* glow halo */}
@@ -290,17 +322,17 @@ function ModelStar({
 
       {/* selection ring */}
       <mesh ref={selRing} rotation-x={-Math.PI / 2} visible={false}>
-        <torusGeometry args={[size * 1.7, 0.012, 8, 48]} />
+        <torusGeometry args={[size * 1.7, 0.012, 8, COMPACT ? 24 : 48]} />
         <meshBasicMaterial color={m.accent} transparent opacity={0.85} toneMapped={false} />
       </mesh>
 
       {/* floating labels — EN always on, FA appears when focused/hovered */}
       <Billboard position={[0, size * 2 + 0.9, 0]} visible={showEn}>
-        {showFa && (
+        {showFa && faTex && (
           <mesh>
-            <planeGeometry args={[labelW(texs.fa, 0.3), 0.3]} />
+            <planeGeometry args={[labelW(faTex, 0.3), 0.3]} />
             <meshBasicMaterial
-              map={texs.fa}
+              map={faTex}
               transparent
               depthWrite={false}
               opacity={1}
@@ -309,9 +341,9 @@ function ModelStar({
           </mesh>
         )}
         <mesh position={[0, showFa ? -0.34 : 0, 0]}>
-          <planeGeometry args={[labelW(texs.en, showFa ? 0.19 : 0.24), showFa ? 0.19 : 0.24]} />
+          <planeGeometry args={[labelW(enTex, showFa ? 0.19 : 0.24), showFa ? 0.19 : 0.24]} />
           <meshBasicMaterial
-            map={texs.en}
+            map={enTex}
             transparent
             depthWrite={false}
             opacity={active ? 1 : 0.62}
@@ -399,8 +431,8 @@ function Galaxy({
 
   const texs = useMemo(
     () => ({
-      fa: makeLabelTexture(spec.fa, spec.color, matrixFont, 52),
-      en: makeLabelTexture(`${spec.en} × ${count}`, spec.color, false, 26),
+      fa: makeLabelTexture(spec.fa, spec.color, matrixFont, COMPACT ? 36 : 52),
+      en: makeLabelTexture(`${spec.en} × ${count}`, spec.color, false, COMPACT ? 18 : 26),
     }),
     [spec, count, matrixFont],
   );
@@ -416,6 +448,23 @@ function Galaxy({
     register(`c:${cat}`, anchor.current);
     return () => register(`c:${cat}`, null);
   }, [cat, register]);
+
+  // All orbit paths of this galaxy merged into ONE geometry + ONE draw call.
+  // 61 separate ring meshes used to be 61 extra draw calls; on a Mali-G52
+  // that alone was a visible chunk of the frame budget.
+  const ringsGeo = useMemo(() => {
+    const siblings = MODELS.filter((x) => x.cat === cat);
+    const geos = siblings.map((m) => {
+      const { r } = starOrbitOf(siblings.indexOf(m), count);
+      const g = new THREE.RingGeometry(r - 0.02, r + 0.02, COMPACT ? 48 : 96);
+      g.rotateX(-Math.PI / 2);
+      return g;
+    });
+    const merged = mergeGeometries(geos);
+    geos.forEach((g) => g.dispose());
+    return merged;
+  }, [cat, count]);
+  useEffect(() => () => ringsGeo?.dispose(), [ringsGeo]);
 
   useFrame((_, rawDelta) => {
     const dt = reduced ? 0 : Math.min(rawDelta, 0.05);
@@ -441,7 +490,7 @@ function Galaxy({
         />
       </mesh>
       <Sparkles
-        count={COMPACT ? 16 : 44}
+        count={COMPACT ? 10 : 44}
         scale={[maxR * 2.1, 1.3, maxR * 2.1]}
         size={1.7}
         speed={0.2}
@@ -452,7 +501,7 @@ function Galaxy({
       {/* core sun — hover shows the category name, click flies to this galaxy */}
       <group onPointerOver={coreOver} onPointerOut={coreOut} onClick={coreClick}>
         <mesh>
-          <sphereGeometry args={[0.55, 32, 32]} />
+          <sphereGeometry args={[0.55, COMPACT ? 18 : 32, COMPACT ? 18 : 32]} />
           <meshBasicMaterial color={spec.color} toneMapped={false} />
         </mesh>
         <sprite scale={[3.4, 3.4, 1]}>
@@ -476,7 +525,7 @@ function Galaxy({
           />
         </mesh>
         <mesh ref={coreRing} rotation-x={Math.PI / 2.4}>
-          <torusGeometry args={[1.25, 0.012, 8, 64]} />
+          <torusGeometry args={[1.25, 0.012, 8, COMPACT ? 32 : 64]} />
           <meshBasicMaterial
             color={spec.color}
             transparent
@@ -552,26 +601,17 @@ function Galaxy({
 
       <group ref={anchor} />
 
-      {/* one faint orbit path per star, centered on the galaxy core */}
-      {MODELS.map((m) =>
-        m.cat === cat ? (
-          <mesh key={`o-${m.id}`} rotation-x={-Math.PI / 2}>
-            <ringGeometry
-              args={[
-                starOrbitOf(MODELS.filter((x) => x.cat === cat).indexOf(m), count).r - 0.02,
-                starOrbitOf(MODELS.filter((x) => x.cat === cat).indexOf(m), count).r + 0.02,
-                128,
-              ]}
-            />
-            <meshBasicMaterial
-              color={spec.color}
-              transparent
-              opacity={dimmed ? 0.02 : filterActive ? 0.22 : 0.1}
-              side={THREE.DoubleSide}
-              toneMapped={false}
-            />
-          </mesh>
-        ) : null,
+      {/* one faint orbit ribbon per galaxy — every star's ring merged */}
+      {ringsGeo && (
+        <mesh geometry={ringsGeo}>
+          <meshBasicMaterial
+            color={spec.color}
+            transparent
+            opacity={dimmed ? 0.02 : filterActive ? 0.22 : 0.1}
+            side={THREE.DoubleSide}
+            toneMapped={false}
+          />
+        </mesh>
       )}
 
       {/* model stars live inside the tilted galaxy plane */}
@@ -650,8 +690,17 @@ function HoloRig({
 }
 
 /** Drag horizontally to orbit (touch-friendly: vertical swipes still scroll the page). */
+const invalidateRef: { current: (() => void) | null } = { current: null };
+
 function NavControls({ nav }: { nav: React.RefObject<NavState> }) {
   const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => {
+    invalidateRef.current = () => invalidate();
+    return () => {
+      invalidateRef.current = null;
+    };
+  }, [invalidate]);
   useEffect(() => {
     const el = gl.domElement;
     let active = false;
@@ -675,6 +724,7 @@ function NavControls({ nav }: { nav: React.RefObject<NavState> }) {
         n.azT = n.az;
         n.idle = 0;
         document.body.style.cursor = "grabbing";
+        if (invalidateRef.current) invalidateRef.current();
       }
     };
     const up = () => {
@@ -769,7 +819,7 @@ function World({
       <Stars
         radius={220}
         depth={110}
-        count={COMPACT ? 2400 : 5600}
+        count={COMPACT ? 1700 : 5600}
         factor={4.6}
         saturation={0.4}
         fade
@@ -846,6 +896,31 @@ export default function GalaxyScene({
     dragging: false,
   });
 
+  // Stop rendering entirely while the canvas is scrolled out of view or the
+  // tab is hidden — on the hardware page the model table sits below the
+  // viewport and phones shouldn't pay a single GPU frame for it.
+  const wrap = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(true);
+  const [pageVisible, setPageVisible] = useState(true);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setInView(!!e?.isIntersecting), {
+      rootMargin: "160px 0px",
+    });
+    io.observe(el);
+    const vis = () => setPageVisible(!document.hidden);
+    document.addEventListener("visibilitychange", vis);
+    return () => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", vis);
+    };
+  }, []);
+  const active = inView && pageVisible;
+  // compact tier: demand-mode rendering paced at 30fps by FrameGovernor;
+  // desktop keeps the classic always-on 60fps loop.
+  const frameloop = active ? (COMPACT ? "demand" : "always") : ("never" as const);
+
   // recentre when selection clears / filter changes
   useEffect(() => {
     const n = nav.current;
@@ -866,42 +941,47 @@ export default function GalaxyScene({
   }, [focus, catFilter]);
 
   return (
-    <Canvas
-      dpr={COMPACT ? [0.65, 1] : [1, 1.5]}
-      camera={{
-        position: [Math.sin(2.4) * overviewRad(), overviewH(), Math.cos(2.4) * overviewRad()],
-        fov: 55,
-        near: 0.1,
-        far: 900,
-      }}
-      gl={{
-        antialias: !COMPACT,
-        powerPreference: COMPACT ? "low-power" : "high-performance",
-      }}
-      style={{ position: "absolute", inset: 0 }}
-    >
-      <Suspense
-        fallback={
-          <Html center>
-            <span className="font-mono text-primary text-xs">booting galaxy…</span>
-          </Html>
-        }
+    <div ref={wrap} className="absolute inset-0">
+      <Canvas
+        frameloop={frameloop}
+        dpr={COMPACT ? [0.6, 0.9] : [1, 1.5]}
+        performance={{ min: COMPACT ? 0.4 : 0.7 }}
+        camera={{
+          position: [Math.sin(2.4) * overviewRad(), overviewH(), Math.cos(2.4) * overviewRad()],
+          fov: 55,
+          near: 0.1,
+          far: 900,
+        }}
+        gl={{
+          antialias: !COMPACT,
+          powerPreference: COMPACT ? "low-power" : "high-performance",
+        }}
+        style={{ position: "absolute", inset: 0 }}
       >
-        <World
-          p={p}
-          nav={nav}
-          regs={regs}
-          focus={focus}
-          filter={catFilter}
-          reduced={reduced}
-          matrixFont={matrixFont}
-          onPick={onPick}
-          onCorePick={onCorePick}
-        />
-      </Suspense>
-      {/* NOTE: no EffectComposer here — @react-three/postprocessing takes over
-          the render loop and (in this scene) silently stops all output.
-          The glow aesthetic comes from additive glow sprites + disc textures. */}
-    </Canvas>
+        {COMPACT && <FrameGovernor fps={30} active={active} />}
+        <Suspense
+          fallback={
+            <Html center>
+              <span className="font-mono text-primary text-xs">booting galaxy…</span>
+            </Html>
+          }
+        >
+          <World
+            p={p}
+            nav={nav}
+            regs={regs}
+            focus={focus}
+            filter={catFilter}
+            reduced={reduced}
+            matrixFont={matrixFont}
+            onPick={onPick}
+            onCorePick={onCorePick}
+          />
+        </Suspense>
+        {/* NOTE: no EffectComposer here — @react-three/postprocessing takes over
+            the render loop and (in this scene) silently stops all output.
+            The glow aesthetic comes from additive glow sprites + disc textures. */}
+      </Canvas>
+    </div>
   );
 }

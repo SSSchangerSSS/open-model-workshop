@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as HardwareRouteImport } from './routes/hardware'
 import { Route as ServicesRouteImport } from './routes/services'
@@ -18,6 +19,11 @@ import { Route as ShowcaseRouteImport } from './routes/showcase'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompareRoute = CompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -43,6 +49,7 @@ const ShowcaseRoute = ShowcaseRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
   '/services': typeof ServicesRoute
@@ -65,14 +74,23 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/contact' | '/hardware' | '/services' | '/showcase'
+  fullPaths:
+    '/' | '/compare' | '/contact' | '/hardware' | '/services' | '/showcase'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/contact' | '/hardware' | '/services' | '/showcase'
-  id: '__root__' | '/' | '/contact' | '/hardware' | '/services' | '/showcase'
+  to: '/' | '/compare' | '/contact' | '/hardware' | '/services' | '/showcase'
+  id:
+    | '__root__'
+    | '/'
+    | '/compare'
+    | '/contact'
+    | '/hardware'
+    | '/services'
+    | '/showcase'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
   HardwareRoute: typeof HardwareRoute
   ServicesRoute: typeof ServicesRoute
@@ -86,6 +104,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compare': {
+      id: '/compare'
+      path: '/compare'
+      fullPath: '/compare'
+      preLoaderRoute: typeof CompareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -121,6 +146,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
   HardwareRoute: HardwareRoute,
   ServicesRoute: ServicesRoute,

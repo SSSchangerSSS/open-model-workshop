@@ -131,16 +131,16 @@ function Index() {
           </div>
         </section>
 
-        {/* STATS */}
+        {/* STATS — برآورد نمونه‌ها، نه تضمین نتیجه */}
         <section
-          className="cv-auto max-w-6xl mx-auto px-6 py-20 grid grid-cols-2 md:grid-cols-4 gap-4"
+          className="cv-auto max-w-6xl mx-auto px-5 md:px-6 py-20 grid grid-cols-2 md:grid-cols-4 gap-4"
           style={{ "--cv-size": "380px" } as React.CSSProperties}
         >
           {[
-            [80, "٪", "کاهش کارهای دستی"],
-            [24, "/۷", "کارکرد بی‌وقفه"],
+            [80, "٪", "کاهش کار دستی (نمونه‌ها)"],
+            [24, "/۷", "کارکرد بی‌وقفه ورک‌فلو"],
             [100, "٪", "داده نزد شما"],
-            [0, "", "هزینه API ماهانه"],
+            [0, "", "وابستگی به API خارجی"],
           ].map(([n, s, l], i) => (
             <Reveal key={i} delay={i * 100}>
               <Tilt max={7}>
@@ -159,6 +159,10 @@ function Index() {
               </Tilt>
             </Reveal>
           ))}
+          <p className="col-span-2 md:col-span-4 text-center text-[11px] text-muted-foreground">
+            اعداد، برآورد نمونه‌های اجراشده‌اند و به پیکربندی شما بستگی دارند — اجرای خودمیزبان
+            هزینهٔ زیرساخت و نگهداری دارد؛ چیزی که صفر می‌شود، هزینهٔ API سرویس خارجی است.
+          </p>
         </section>
 
         {/* COMPARE — manual vs automated (drag me) */}
@@ -365,59 +369,100 @@ function CompareSlider() {
   };
 
   return (
-    <div
-      ref={wrap}
-      dir="ltr"
-      className="compare-wrap rack-card relative h-[520px] md:h-[380px] cursor-ew-resize"
-      onPointerDown={(e) => {
-        dragging.current = true;
-        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-        setFromX(e.clientX);
-      }}
-      onPointerMove={(e) => dragging.current && setFromX(e.clientX)}
-      onPointerUp={() => (dragging.current = false)}
-      onPointerCancel={() => (dragging.current = false)}
-    >
-      {/* BASE — BEFORE (قبل): manual work, opaque, anchored in the RIGHT half */}
-      <CompareSide
-        tone="manual"
-        title="فرایند دستی"
-        sub="BEFORE"
-        rows={compareManual}
-        side="right"
-      />
-
-      {/* TOP — AFTER (بعد): automated, opaque, revealed to the LEFT of the divider */}
-      <div className="compare-side" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-        <CompareSide
-          tone="auto"
-          title="با اتوماسیون هوش برتر"
-          sub="AFTER"
-          rows={compareAuto}
-          side="left"
-        />
+    <div>
+      {/* کنترل بدون-drag برای موبایل: خواندن قبل/بعد بدون اشاره‌گر هم ممکن است */}
+      <div className="mb-3 flex items-center justify-center gap-2 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setPos(88)}
+          aria-pressed={pos > 70}
+          className={`min-h-11 flex-1 rounded-lg border px-4 py-2.5 text-sm font-bold transition ${
+            pos > 70
+              ? "border-primary bg-primary/15 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          قبل (کار دستی)
+        </button>
+        <button
+          type="button"
+          onClick={() => setPos(50)}
+          aria-pressed={pos > 30 && pos <= 70}
+          className={`min-h-11 rounded-lg border px-4 py-2.5 text-sm font-bold transition ${
+            pos > 30 && pos <= 70
+              ? "border-primary bg-primary/15 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          وسط
+        </button>
+        <button
+          type="button"
+          onClick={() => setPos(12)}
+          aria-pressed={pos <= 30}
+          className={`min-h-11 flex-1 rounded-lg border px-4 py-2.5 text-sm font-bold transition ${
+            pos <= 30
+              ? "border-primary bg-primary/15 text-primary"
+              : "border-border text-muted-foreground"
+          }`}
+        >
+          بعد (اتوماسیون)
+        </button>
       </div>
-
-      {/* divider + knob */}
-      <div className="compare-divider pointer-events-none" style={{ left: `${pos}%` }} />
-      <button
-        type="button"
-        role="slider"
-        aria-label="جابه‌جایی مقایسهٔ قبل و بعد"
-        aria-valuemin={12}
-        aria-valuemax={88}
-        aria-valuenow={Math.round(pos)}
-        className="compare-knob h-11 w-11 grid place-items-center text-primary"
-        style={{ left: `${pos}%`, touchAction: "none" }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setPos((p) => Math.max(12, p - 4));
-          if (e.key === "ArrowRight") setPos((p) => Math.min(88, p + 4));
-          if (e.key === "Home") setPos(12);
-          if (e.key === "End") setPos(88);
+      <div
+        ref={wrap}
+        dir="ltr"
+        className="compare-wrap rack-card relative h-[520px] md:h-[380px] cursor-ew-resize"
+        onPointerDown={(e) => {
+          dragging.current = true;
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          setFromX(e.clientX);
         }}
+        onPointerMove={(e) => dragging.current && setFromX(e.clientX)}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
       >
-        <MoveHorizontal size={20} />
-      </button>
+        {/* BASE — BEFORE (قبل): manual work, opaque, anchored in the RIGHT half */}
+        <CompareSide
+          tone="manual"
+          title="فرایند دستی"
+          sub="BEFORE"
+          rows={compareManual}
+          side="right"
+        />
+
+        {/* TOP — AFTER (بعد): automated, opaque, revealed to the LEFT of the divider */}
+        <div className="compare-side" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+          <CompareSide
+            tone="auto"
+            title="با اتوماسیون هوش برتر"
+            sub="AFTER"
+            rows={compareAuto}
+            side="left"
+          />
+        </div>
+
+        {/* divider + knob */}
+        <div className="compare-divider pointer-events-none" style={{ left: `${pos}%` }} />
+        <button
+          type="button"
+          role="slider"
+          aria-label="جابه‌جایی مقایسهٔ قبل و بعد"
+          aria-valuemin={12}
+          aria-valuemax={88}
+          aria-valuenow={Math.round(pos)}
+          className="compare-knob h-11 w-11 grid place-items-center text-primary"
+          style={{ left: `${pos}%`, touchAction: "none" }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") setPos((p) => Math.max(12, p - 4));
+            if (e.key === "ArrowRight") setPos((p) => Math.min(88, p + 4));
+            if (e.key === "Home") setPos(12);
+            if (e.key === "End") setPos(88);
+          }}
+        >
+          <MoveHorizontal size={20} />
+        </button>
+      </div>
     </div>
   );
 }

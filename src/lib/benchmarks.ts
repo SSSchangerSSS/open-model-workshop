@@ -328,6 +328,15 @@ export const BENCH: Record<string, BenchRow> = {
 
 export const SNAPSHOT_FA = "اسنپ‌شات مهر ۱۴۰۵ / اکتبر ۲۰۲۶";
 
+/**
+ * «ناموجود» فقط وقتی است که کلید سنجه در داده نیست — صفرِ معتبر دادهٔ
+ * گم‌شده نیست (docs/ui-performance-audit.md §compare). NaN هم دادهٔ معتبر
+ * محسوب نمی‌شود تا هرگز وارد نمودار نشود.
+ */
+export function isMissingMetric(v: number | undefined | null): boolean {
+  return typeof v !== "number" || Number.isNaN(v);
+}
+
 /** Row for a model id — always defined for catalog ids (runtime guard). */
 export function benchOf(id: string): BenchRow | undefined {
   return BENCH[id];

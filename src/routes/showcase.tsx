@@ -31,13 +31,13 @@ export const Route = createFileRoute("/showcase")({
       {
         name: "description",
         content:
-          "۱۶ نمونه واقعی از اتوماسیون با n8n و Flowise: پشتیبانی خودکار، دستیار صوتی، پردازش فاکتور، RAG سازمانی، تولید محتوا، تحلیل قرارداد، پیش‌بینی موجودی و گزارش‌سازی.",
+          "۱۶ سناریوی مرجع اتوماسیون با n8n و Flowise: پشتیبانی خودکار، پردازش فاکتور، RAG سازمانی، تولید محتوا و گزارش‌سازی — با معماری واقعی ورک‌فلو و برآورد اعداد نمونه‌های مشابه.",
       },
-      { property: "og:title", content: "نمونه‌کارهای واقعی n8n و Flowise | هوش برتر" },
+      { property: "og:title", content: "نمونه‌کارها و معماری‌های اجرا | هوش برتر" },
       {
         property: "og:description",
         content:
-          "چه نیازهایی با اتوماسیون و ایجنت‌های هوش مصنوعی حل شده‌اند؟ با اعداد واقعی ببینید و اجرای هر ورک‌فلو را شبیه‌سازی کنید.",
+          "چه نیازهایی با اتوماسیون و ایجنت‌های هوش مصنوعی حل می‌شوند؟ معماری هر سناریو را ببینید و اجرای ورک‌فلو را در نمایش آموزشی گام‌به‌گام دنبال کنید.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -555,6 +555,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               <div
                 key={l}
                 className="rounded-md border border-border bg-muted/30 px-2 py-3 text-center transition hover:border-primary/50 hover:bg-primary/5"
+                title="برآورد نمونه‌های مشابه — نه نتیجهٔ تضمین‌شده"
               >
                 <div className="text-base md:text-lg font-black text-primary leading-tight">
                   {v}
@@ -572,7 +573,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
                 className="inline-flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition"
               >
                 <CirclePlay size={15} />
-                شبیه‌سازی اجرای ورک‌فلو
+                شبیه‌سازی اجرا (نمایش آموزشی)
               </button>
             )}
             {running && (
@@ -699,15 +700,15 @@ function Showcase() {
         style={{ "--cv-size": "3200px" } as React.CSSProperties}
       >
         <p className="font-mono text-xs text-primary" dir="ltr">
-          &gt; ls /cases --real-world --with-metrics
+          &gt; ls /cases --reference-architectures
         </p>
         <h1 className="mt-4 text-4xl font-black">
-          نمونه‌کارهای <span className="text-gradient">واقعی</span> n8n و Flowise
+          نمونه‌کارها و <span className="text-gradient">معماری‌های اجرا</span> با n8n و Flowise
         </h1>
         <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-          شانزده نیاز واقعی کسب‌وکارها که با اتوماسیون n8n و ایجنت‌های Flowise حل شده‌اند؛ نام
-          مشتری‌ها محرمانه است اما معماری، اعداد و نتایج واقعی‌اند. روی «شبیه‌سازی اجرا» بزنید تا
-          ورک‌فلو مرحله‌به‌مرحله جلوی چشم شما اجرا شود.
+          شانزده سناریوی مرجع از نیازهای رایج کسب‌وکارها؛ معماری هر مورد، ورک‌فلو و مراحل اجرای
+          واقعی است و اعداد، بازهٔ نمونه‌های مشابه‌اند (برآورد — نه نتیجهٔ تضمین‌شده). دکمهٔ
+          «شبیه‌سازی اجرا» یک نمایش آموزشی گام‌به‌گام است، نه اتصال به سیستم واقعی.
         </p>
 
         {/* stack filter */}

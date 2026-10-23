@@ -14,6 +14,7 @@ import {
 } from "@/lib/sizing";
 import {
   BENCH,
+  isMissingMetric,
   METRICS,
   SNAPSHOT_FA,
   benchModels,
@@ -81,10 +82,14 @@ function SourceBadge({ small }: { small?: boolean }) {
 }
 
 function EvDot({ ev }: { ev: "verified" | "estimated" }) {
+  const label = ev === "verified" ? "دادهٔ مستقیم از منبع" : "برآورد نرمال‌شده بر پایهٔ منابع";
   return (
     <span
-      title={ev === "verified" ? "دادهٔ مستقیم از منبع" : "برآورد نرمال‌شده بر پایهٔ منابع"}
-      className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
+      title={label}
+      role="img"
+      aria-label={label}
+      tabIndex={0}
+      className={`inline-block h-2 w-2 shrink-0 rounded-full focus-visible:outline focus-visible:outline-1 focus-visible:outline-primary ${
         ev === "verified" ? "bg-primary shadow-[0_0_6px_#4dff88]" : "bg-amber-400/80"
       }`}
     />
@@ -103,13 +108,20 @@ function ChartMode() {
   const rows = useMemo(() => {
     const list = benchModels(cat)
       .map((m) => ({ m, row: benchOf(m.id)!, v: benchOf(m.id)?.m[metric.key] }))
-      .filter((r): r is { m: ModelSpec; row: BenchRow; v: number } => typeof r.v === "number");
+      .filter(
+        (r): r is { m: ModelSpec; row: BenchRow; v: number } =>
+          typeof r.v === "number" && !Number.isNaN(r.v),
+      );
     list.sort((a, b) => (metric.higherBetter ? b.v - a.v : a.v - b.v));
     return list;
   }, [cat, metric]);
 
-  const max = rows.length ? Math.max(...rows.map((r) => r.v)) : 1;
-  const missing = MODELS.filter((m) => m.cat === cat && !BENCH[m.id]?.m[metric.key]).length;
+  // صفر مقدار معتبر است؛ «ناموجود» یعنی کلید سنجه در داده نیست — نه ۰
+  const max = rows.length ? Math.max(...rows.map((r) => r.v)) : 0;
+  const safeMax = max > 0 ? max : 1; // همهٔ مقادیر صفر → عرض نمودار نامعتبر نشود
+  const missing = MODELS.filter(
+    (m) => m.cat === cat && isMissingMetric(BENCH[m.id]?.m[metric.key]),
+  ).length;
 
   return (
     <div>
@@ -165,54 +177,67 @@ function ChartMode() {
         {missing > 0 && <> · {faDigits(missing)} مدل این دسته دادهٔ این سنجه را ندارند</>}
       </p>
 
-      {/* bars */}
-      <div className="space-y-2.5">
-        {rows.map((r, i) => {
-          const top = i === 0;
-          const pct = Math.max(6, (r.v / max) * 100);
-          return (
-            <div key={r.m.id} className="group flex items-center gap-3">
-              <div className="w-36 shrink-0 sm:w-44">
-                <div className="truncate text-xs text-white/90" title={r.m.fa}>
-                  {r.m.fa}
-                </div>
-                <div className="truncate font-mono text-[10px] text-white/40" dir="ltr">
-                  {r.m.en}
-                </div>
-              </div>
-              <div className="relative h-7 flex-1 overflow-hidden rounded-l-md bg-white/[0.04]">
-                <div
-                  className="absolute inset-y-0 right-0 rounded-l-md transition-all duration-700 ease-out"
-                  style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(to left, ${CATEGORY_MAP[cat].color}dd, ${CATEGORY_MAP[cat].color}55)`,
-                    boxShadow: top ? `0 0 18px ${CATEGORY_MAP[cat].color}66` : undefined,
-                  }}
-                />
-                <span
-                  className={`absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[11px] ${
-                    pct > 88 ? "text-[#04140b]" : "text-white/85"
-                  }`}
-                  dir="ltr"
-                >
-                  {fmt(r.v)}
-                  {metric.unit ? <span className="opacity-70"> {metric.unit}</span> : null}
-                </span>
-              </div>
-              <div className="flex w-10 shrink-0 items-center justify-end gap-1">
-                {top && (
-                  <span className="rounded-sm bg-primary/15 px-1 py-0.5 font-mono text-[9px] text-primary">
-                    برتر
+      {/* ناموجود ≠ صفر */}
+      {rows.length === 0 ? (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-8 text-center">
+          <p className="text-sm font-bold text-white/85">برای این سنجه داده‌ای موجود نیست</p>
+          <p className="mt-2 text-xs text-white/50">
+            هیچ‌کدام از مدل‌های این دسته مقدار مستندشده‌ای برای «{metric.fa}» ندارند — عدد صفر نمایش
+            داده نمی‌شود چون «بدون داده» با «صفر» یکی نیست.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {rows.map((r, i) => {
+            const top = i === 0;
+            // صفر مقدار معتبر است؛ اگر بیشینهٔ واقعی صفر بود نمودار بی‌معنا نمی‌شود
+            const pct = max > 0 ? Math.max(4, (r.v / safeMax) * 100) : 4;
+            return (
+              <div
+                key={r.m.id}
+                className="group rounded-lg px-2 py-2 transition hover:bg-white/[0.03]"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-white/90">{r.m.fa}</span>
+                    <bdi dir="ltr" className="ms-2 font-mono text-[10px] text-white/40">
+                      {r.m.en}
+                    </bdi>
+                  </div>
+                  <span className="shrink-0 font-mono text-[11px] text-white/85" dir="ltr">
+                    {fmt(r.v)}
+                    {metric.unit ? <span className="opacity-70"> {metric.unit}</span> : null}
                   </span>
-                )}
-                <EvDot ev={r.row.ev} />
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div
+                    className="relative h-5 flex-1 overflow-hidden rounded-md bg-white/[0.04]"
+                    role="img"
+                    aria-label={`${r.m.fa}: ${fmt(r.v)} ${metric.unit || ""} — ${top ? "بالاترین در این دسته" : ""}`}
+                  >
+                    <div
+                      className="absolute inset-y-0 right-0 rounded-md transition-all duration-700 ease-out"
+                      style={{
+                        width: `${pct}%`,
+                        background: `linear-gradient(to left, ${CATEGORY_MAP[cat].color}dd, ${CATEGORY_MAP[cat].color}55)`,
+                        boxShadow: top ? `0 0 18px ${CATEGORY_MAP[cat].color}66` : undefined,
+                      }}
+                    />
+                  </div>
+                  {top && (
+                    <span className="shrink-0 rounded-sm bg-primary/15 px-1 py-0.5 font-mono text-[9px] text-primary">
+                      برتر
+                    </span>
+                  )}
+                  <EvDot ev={r.row.ev} />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
-      <p className="mt-4 flex items-center justify-center gap-3 text-center text-[11px] text-white/40">
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-3 text-center text-[11px] text-white/40">
         <span className="inline-flex items-center gap-1.5">
           <EvDot ev="verified" /> دادهٔ مستقیم منبع
         </span>
@@ -305,7 +330,10 @@ function DuelBar({
   colorB: string;
 }) {
   const max = Math.max(va, vb);
+  const safeMax = max > 0 ? max : 1; // هر دو صفر → تقسیم بر صفر ممنوع
   const aWins = va === vb ? null : higherBetter ? va > vb : va < vb;
+  const widthA = max > 0 ? (va / safeMax) * 100 : 0;
+  const widthB = max > 0 ? (vb / safeMax) * 100 : 0;
   return (
     <div className="py-2">
       <div className="mb-1 flex items-center justify-between text-[11px]">
@@ -332,7 +360,7 @@ function DuelBar({
           <div
             className="h-full rounded-r-full transition-all duration-700"
             style={{
-              width: `${(va / max) * 100}%`,
+              width: `${widthA}%`,
               background: colorA,
               opacity: aWins === false ? 0.45 : 1,
             }}
@@ -343,7 +371,7 @@ function DuelBar({
           <div
             className="h-full rounded-l-full transition-all duration-700"
             style={{
-              width: `${(vb / max) * 100}%`,
+              width: `${widthB}%`,
               background: colorB,
               opacity: aWins === true ? 0.45 : 1,
             }}
@@ -356,17 +384,20 @@ function DuelBar({
 }
 
 function DuelMode() {
+  // lookupهای دفاعی: شناسهٔ ناشناخته هرگز کل صفحه را نمی‌اندازد
+  const benched = useMemo(() => MODELS.filter((m) => BENCH[m.id]), []);
   const [aId, setA] = useState("kimi-k3");
   const [bId, setB] = useState("deepseek-v4-pro");
 
-  const A = MODELS.find((m) => m.id === aId)!;
-  const B = MODELS.find((m) => m.id === bId)!;
-  const benchA = benchOf(aId)!;
-  const benchB = benchOf(bId)!;
-  const sameCat = A.cat === B.cat;
+  // فقط مدل‌های دارای دادهٔ بنچمارک انتخاب می‌شوند — lookup خراب → جایگزین امن
+  const A = MODELS.find((m) => m.id === aId && BENCH[m.id]) ?? benched[0];
+  const B = MODELS.find((m) => m.id === bId && BENCH[m.id]) ?? benched[1];
+  const benchA = A ? benchOf(A.id) : undefined;
+  const benchB = B ? benchOf(B.id) : undefined;
 
   // metrics of both categories (deduped by key) — same-key rows become duels
   const metricRows = useMemo(() => {
+    if (!A || !B || !benchA || !benchB) return [];
     const seen = new Set<string>();
     const out: { mt: MetricSpec; va: number | undefined; vb: number | undefined }[] = [];
     for (const mt of [...METRICS[A.cat], ...METRICS[B.cat]]) {
@@ -375,7 +406,15 @@ function DuelMode() {
       out.push({ mt, va: benchA.m[mt.key], vb: benchB.m[mt.key] });
     }
     return out;
-  }, [A.cat, B.cat, benchA, benchB]);
+  }, [A, B, benchA, benchB]);
+
+  if (!A || !B || !benchA || !benchB) {
+    return (
+      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-8 text-center text-sm text-white/70">
+        دادهٔ بنچمارک برای مقایسه بارگذاری نشده است.
+      </div>
+    );
+  }
 
   const sizeA = sizeFor(A, 10);
   const sizeB = sizeFor(B, 10);
@@ -515,7 +554,20 @@ function DuelMode() {
               : r.vb !== undefined
                 ? { m: B, v: r.vb, side: "b" as const }
                 : null;
-          if (!one) return null;
+          if (!one) {
+            // هر دو بدون داده → «ناموجود»، نه حذف ساکتِ سطر
+            return (
+              <div
+                key={r.mt.key}
+                className="flex items-center justify-between border-b border-white/[0.04] py-1.5 text-[11px]"
+              >
+                <span className="text-white/40">{r.mt.fa}</span>
+                <span className="font-mono text-white/35" dir="rtl">
+                  ناموجود
+                </span>
+              </div>
+            );
+          }
           return (
             <div
               key={r.mt.key}

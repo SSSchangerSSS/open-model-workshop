@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const BOOT_LINE = "> ssh operator@dc-01.corridor — connected. telemetry stream live:";
+const BOOT_LINE = "> ssh operator@dc-01.corridor — simulated telemetry (DEMO):";
 
 function pad(n: number, w = 2) {
   return n.toString().padStart(w, "0");
@@ -30,29 +30,30 @@ export default function CorridorStatus() {
 
   return (
     <section
-      aria-label="تلمتری دیتاسنتر"
+      aria-label="تلمتری نمایشی دیتاسنتر — اعداد واقعی نیستند"
       className="border-y border-primary/20 bg-background/60 backdrop-blur-md"
       dir="ltr"
     >
-      <div className="max-w-6xl mx-auto px-6 py-4 font-mono text-[11px] md:text-xs flex flex-wrap items-center gap-x-6 gap-y-2 justify-between">
+      <div className="max-w-6xl mx-auto px-5 md:px-6 py-4 font-mono text-[11px] md:text-xs flex flex-wrap items-center gap-x-6 gap-y-2 justify-between">
         <span className="text-primary/80">{BOOT_LINE}</span>
         <span className="flex flex-wrap items-center gap-x-5 gap-y-1 text-muted-foreground">
           <span>
             TIME <b className="text-primary">{clock}</b>
           </span>
           <span>
-            THROUGHPUT <b className="text-primary">{tps.current} tok/s</b>
+            THROUGHPUT <b className="text-primary">{tps.current} tok/s*</b>
           </span>
           <span>
-            GPU-LOAD <b className="text-primary">{gpu}%</b>
+            GPU-LOAD <b className="text-primary">{gpu}%*</b>
           </span>
           <span>
-            TEMP <b className={temp > 64 ? "text-accent" : "text-primary"}>{temp}°C</b>
+            TEMP <b className={temp > 64 ? "text-accent" : "text-primary"}>{temp}°C*</b>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="status-dot" />
-            <b className="text-primary">44/44 RACKS</b>
+            <span className="status-dot" aria-hidden />
+            <b className="text-primary">44/44 RACKS*</b>
           </span>
+          <span className="text-[10px] text-muted-foreground/70">*= demo values</span>
         </span>
       </div>
     </section>

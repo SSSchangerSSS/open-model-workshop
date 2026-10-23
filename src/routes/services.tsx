@@ -141,23 +141,27 @@ function ServiceCard({
             </div>
           </div>
 
-          {/* footer: status + live load meter */}
+          {/* footer: وضعیت سفارش + زمان تحویل — بدون متر دائمی و SLA بی‌پشتوانه */}
           <div className="mt-auto pt-5">
             <div
-              className="font-mono text-[10px] text-muted-foreground border-t border-primary/15 pt-3 space-y-2"
+              className="font-mono text-[10px] text-muted-foreground border-t border-primary/15 pt-3 flex items-center justify-between gap-2"
               dir="ltr"
             >
-              <div className="flex items-center justify-between">
-                <span>
-                  STATUS: <span className="text-primary">AVAILABLE</span> · SLA: 99.9%
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Wrench size={10} className="text-accent" />
-                  {s.eta}
-                </span>
-              </div>
-              <div className="meter-bar" aria-hidden />
+              <span>
+                STATUS: <span className="text-primary">OPEN</span> · قابل سفارش
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Wrench size={10} className="text-accent" />
+                {s.eta}
+              </span>
             </div>
+            <Link
+              to="/contact"
+              className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-lg border border-primary/40 bg-primary/5 px-4 py-2.5 text-xs font-bold text-primary hover:bg-primary/15 transition"
+            >
+              پرسش درباره این خدمت
+              <ArrowLeft size={14} />
+            </Link>
           </div>
         </article>
       </Tilt>
@@ -260,20 +264,25 @@ function Services() {
           })}
         </div>
 
-        {/* امار زنده شوروم */}
+        {/* خدمات در یک نگاه — اعداد هدف/کاتالوگ، نه آمار لحظه‌ای */}
         <Reveal delay={120}>
-          <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              ["۴۰+", "ورک‌فلوی فعال"],
-              ["۶۱", "مدل آماده استقرار"],
-              ["۹۹٫۹٪", "آپ‌تایم تضمینی"],
-              ["< ۲ ساعت", "پاسخ پشتیبانی"],
-            ].map(([v, l]) => (
-              <div key={l} className="lift rack-card px-4 py-5 text-center">
-                <div className="text-2xl font-black text-primary">{v}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{l}</div>
-              </div>
-            ))}
+          <div className="mt-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                ["۶۱", "مدل آماده استقرار (کاتالوگ کهکشان)"],
+                ["۹", "دستهٔ مدل — تصویر تا صدا و سه‌بعدی"],
+                ["۶", "ماژول خدماتی قابل سفارش"],
+                ["< ۲ ساعت", "هدف پاسخ پشتیبانی (قراردادی)"],
+              ].map(([v, l]) => (
+                <div key={l} className="lift rack-card px-4 py-5 text-center">
+                  <div className="text-2xl font-black text-primary">{v}</div>
+                  <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{l}</div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-center text-[10px] text-muted-foreground">
+              اعداد این نوار، محتوای کاتالوگ همین سایت و اهداف خدماتی‌اند — آمار لحظه‌ای نیستند.
+            </p>
           </div>
         </Reveal>
 

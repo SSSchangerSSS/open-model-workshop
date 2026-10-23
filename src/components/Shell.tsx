@@ -59,12 +59,18 @@ export function Shell({ children }: { children: ReactNode }) {
           <div
             className="hidden md:flex items-center gap-3 font-mono text-[11px] shrink-0"
             dir="ltr"
+            title="عنصر نمایشی برند — مانیتورینگ واقعی نیست"
           >
             <span className="flex items-center gap-1.5 text-primary">
               <span className="status-dot" />
               SYS.ONLINE
             </span>
-            <span className="text-muted-foreground">UPTIME 99.98%</span>
+            <span className="text-muted-foreground">
+              UPTIME 99.98%{" "}
+              <span className="text-primary/50" aria-hidden>
+                · demo
+              </span>
+            </span>
           </div>
 
           {/* mobile hamburger */}
@@ -128,8 +134,8 @@ export function Shell({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="relative z-10 border-t border-primary/25 bg-background/80 backdrop-blur-md py-6 text-center text-sm text-muted-foreground font-mono px-4">
-        <p dir="ltr" className="text-[11px] text-primary/70 mb-1">
-          DC-01 // CORRIDOR-CAM: LIVE // 44 RACKS ONLINE
+        <p dir="ltr" className="text-[11px] text-primary/70 mb-1" title="عنصر نمایشی صحنه">
+          DC-01 // CORRIDOR-SCENE (نمایشی) // 44 RACKS
         </p>
         © ۱۴۰۵ هوش برتر — اتوماسیون و زیرساخت هوش مصنوعی
       </footer>

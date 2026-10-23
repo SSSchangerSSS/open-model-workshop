@@ -13,21 +13,42 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+/**
+ * Deployment root: "/" (SSR / Lovable) or "/open-model-workshop/" (GitHub
+ * Pages static build). Every hand-written absolute URL must go through
+ * BASE_URL so BOTH deployments work.
+ */
+const BASE = import.meta.env.BASE_URL || "/";
+
+/** The site's own home, correct under any base path. */
+const homeHref = () => (BASE.endsWith("/") ? BASE : `${BASE}/`);
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+        <p className="font-mono text-xs text-primary" dir="ltr">
+          &gt; grep -r "این صفحه" / --include="*.route" → no match
         </p>
-        <div className="mt-6">
+        <h1 className="mt-4 text-6xl md:text-7xl font-black text-foreground">
+          ۴۰۴ <span className="text-gradient">— صفحه پیدا نشد</span>
+        </h1>
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+          نشانی‌ای که باز کرده‌اید وجود ندارد یا جابه‌جا شده است. می‌توانید از خانه دوباره شروع کنید
+          یا سراغ یکی از مسیرهای اصلی بروید.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            بازگشت به خانه
+          </Link>
+          <Link
+            to="/services"
+            className="inline-flex items-center justify-center rounded-md border border-primary/40 px-4 py-2.5 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
+          >
+            دیدن خدمات
           </Link>
         </div>
       </div>
@@ -45,11 +66,15 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+        <p className="font-mono text-xs text-primary" dir="ltr">
+          &gt; tail -f /var/log/error.log
+        </p>
+        <h1 className="mt-4 text-2xl font-black tracking-tight text-foreground">
+          این صفحه بارگذاری نشد
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          مشکلی سمت ما پیش آمد. می‌توانید دوباره تلاش کنید — اگر تکرار شد، از خانه شروع کنید یا صفحه
+          را رفرش بگیرید.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -57,15 +82,15 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            تلاش دوباره
           </button>
           <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            href={homeHref()}
+            className="inline-flex items-center justify-center rounded-md border border-primary/40 px-4 py-2.5 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
           >
-            Go home
+            بازگشت به خانه
           </a>
         </div>
       </div>
@@ -90,7 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
       // no third-party request, no render-blocking stylesheet round-trip.
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: `${BASE}favicon.ico`, type: "image/x-icon" },
     ],
     scripts: [
       {
@@ -98,6 +123,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // session, hide it instantly (no flash on repeat visits / SPA navigations).
         children:
           "try{if(sessionStorage.getItem('intro'))document.documentElement.classList.add('intro-done')}catch(e){}",
+      },
+      {
+        // Marks JS as available BEFORE first paint so `.reveal` blocks only
+        // hide content when the IntersectionObserver can actually un-hide
+        // them. Without JavaScript the markup stays fully visible.
+        children: "document.documentElement.classList.add('js')",
       },
       {
         // Structured data for search engines
@@ -139,6 +170,10 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="fa" dir="rtl">
       <head>
         <HeadContent />
+        {/* No JavaScript → the boot intro must never cover the content. */}
+        <noscript>
+          <style>{`#boot-overlay{display:none !important}`}</style>
+        </noscript>
       </head>
       <body>
         {children}

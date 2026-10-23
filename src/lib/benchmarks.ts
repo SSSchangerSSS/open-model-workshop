@@ -46,7 +46,8 @@ export const METRICS: Record<ModelCategory, MetricSpec[]> = {
       fa: "قیمت API",
       unit: "$/M توکن",
       higherBetter: false,
-      descFa: "قیمت ترکیبی API به ازای هر میلیون توکن — اجرای خصوصی رایگان است",
+      descFa:
+        "قیمت ترکیبی API به ازای هر میلیون توکن — اجرای خصوصی هزینهٔ API ندارد (هزینهٔ زیرساخت جداگانه)",
     },
     {
       key: "ctx",
@@ -336,4 +337,18 @@ export function benchOf(id: string): BenchRow | undefined {
 /** All catalog models of a category that carry benchmark data. */
 export function benchModels(cat: ModelCategory) {
   return MODELS.filter((m) => m.cat === cat && BENCH[m.id]);
+}
+
+/**
+ * Finite metric value for a model id — or undefined when the datum is absent.
+ * Zero is a VALID value and must not be treated as "missing"; only
+ * non-numbers and non-finite junk (NaN/±Infinity) count as missing.
+ */
+export function metricValue(id: string, key: string): number | undefined {
+  const v = BENCH[id]?.m[key];
+  return typeof v === "number" && Number.isFinite(v) ? v : undefined;
+}
+
+export function hasMetric(id: string, key: string): boolean {
+  return metricValue(id, key) !== undefined;
 }

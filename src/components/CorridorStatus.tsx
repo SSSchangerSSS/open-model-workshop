@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const BOOT_LINE = "> ssh operator@dc-01.corridor — connected. telemetry stream live:";
+const BOOT_LINE = "> ssh operator@dc-01.corridor — connected. telemetry stream (نمایشی):";
 
 function pad(n: number, w = 2) {
   return n.toString().padStart(w, "0");
@@ -30,7 +30,7 @@ export default function CorridorStatus() {
 
   return (
     <section
-      aria-label="تلمتری دیتاسنتر"
+      aria-label="تلمتری نمایشی دیتاسنتر — شبیه‌سازی، نه مانیتورینگ واقعی"
       className="border-y border-primary/20 bg-background/60 backdrop-blur-md"
       dir="ltr"
     >

@@ -17,8 +17,8 @@ import {
   METRICS,
   SNAPSHOT_FA,
   benchModels,
-  benchOf,
-  type BenchRow,
+  hasMetric,
+  metricValue,
   type MetricSpec,
 } from "@/lib/benchmarks";
 
@@ -56,12 +56,17 @@ export const Route = createFileRoute("/compare")({
 const faDigits = (n: number | string) =>
   String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)] ?? d);
 
-const fmt = (v: number) =>
-  v >= 1000
+const fmt = (v: number) => {
+  if (!Number.isFinite(v)) return "—";
+  return v >= 1000
     ? faDigits(Math.round(v).toLocaleString("en-US"))
     : v >= 10
       ? faDigits(Math.round(v))
       : faDigits(Math.round(v * 10) / 10);
+};
+
+/** The canonical «missing datum» label — never render a zero for absent data. */
+const MISSING_FA = "ناموجود";
 
 /* ------------------------------------------------------------------ */
 /* Source badge — shown in the hero and under each chart               */
@@ -84,10 +89,25 @@ function EvDot({ ev }: { ev: "verified" | "estimated" }) {
   return (
     <span
       title={ev === "verified" ? "دادهٔ مستقیم از منبع" : "برآورد نرمال‌شده بر پایهٔ منابع"}
+      aria-hidden
       className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${
         ev === "verified" ? "bg-primary shadow-[0_0_6px_#4dff88]" : "bg-amber-400/80"
       }`}
     />
+  );
+}
+
+/** Visible, non-color estimate marker — the datum is labelled by TEXT too,
+ *  not only by the amber dot or a hover tooltip. */
+function EvTag({ ev }: { ev: "verified" | "estimated" }) {
+  if (ev === "verified") return null;
+  return (
+    <span
+      className="rounded-sm border border-amber-400/40 px-1 font-mono text-[9px] leading-4 text-amber-300/90"
+      title="برآورد نرمال‌شده بر پایهٔ منابع — عدد مستقیم منبع نیست"
+    >
+      برآورد
+    </span>
   );
 }
 
@@ -102,14 +122,19 @@ function ChartMode() {
 
   const rows = useMemo(() => {
     const list = benchModels(cat)
-      .map((m) => ({ m, row: benchOf(m.id)!, v: benchOf(m.id)?.m[metric.key] }))
-      .filter((r): r is { m: ModelSpec; row: BenchRow; v: number } => typeof r.v === "number");
+      .map((m) => ({ m, ev: BENCH[m.id]!.ev, v: metricValue(m.id, metric.key) }))
+      .filter(
+        (r): r is { m: ModelSpec; ev: "verified" | "estimated"; v: number } =>
+          typeof r.v === "number",
+      );
     list.sort((a, b) => (metric.higherBetter ? b.v - a.v : a.v - b.v));
     return list;
   }, [cat, metric]);
 
-  const max = rows.length ? Math.max(...rows.map((r) => r.v)) : 1;
-  const missing = MODELS.filter((m) => m.cat === cat && !BENCH[m.id]?.m[metric.key]).length;
+  // finite max only — an all-zero / absent dataset must never yield NaN widths
+  const max = rows.length ? Math.max(...rows.map((r) => r.v)) : 0;
+  const hasScale = max > 0;
+  const missing = MODELS.filter((m) => m.cat === cat && !hasMetric(m.id, metric.key)).length;
 
   return (
     <div>
@@ -166,51 +191,62 @@ function ChartMode() {
       </p>
 
       {/* bars */}
-      <div className="space-y-2.5">
-        {rows.map((r, i) => {
-          const top = i === 0;
-          const pct = Math.max(6, (r.v / max) * 100);
-          return (
-            <div key={r.m.id} className="group flex items-center gap-3">
-              <div className="w-36 shrink-0 sm:w-44">
-                <div className="truncate text-xs text-white/90" title={r.m.fa}>
-                  {r.m.fa}
+      {rows.length === 0 ? (
+        <p className="rounded-xl border border-white/10 bg-white/[0.02] p-6 text-center text-xs text-white/60">
+          برای این دسته و این سنجه داده‌ای ثبت نشده است.
+        </p>
+      ) : (
+        <div className="space-y-2.5">
+          {rows.map((r, i) => {
+            const top = i === 0;
+            const pct = hasScale ? Math.max(6, (r.v / max) * 100) : 6;
+            return (
+              <div key={r.m.id} className="group flex items-center gap-3">
+                <div className="w-28 shrink-0 sm:w-44">
+                  <div className="text-xs leading-5 text-white/90" title={r.m.fa}>
+                    {r.m.fa}
+                  </div>
+                  <div
+                    className="truncate font-mono text-[10px] text-white/40"
+                    dir="ltr"
+                    title={r.m.en}
+                  >
+                    {r.m.en}
+                  </div>
                 </div>
-                <div className="truncate font-mono text-[10px] text-white/40" dir="ltr">
-                  {r.m.en}
-                </div>
-              </div>
-              <div className="relative h-7 flex-1 overflow-hidden rounded-l-md bg-white/[0.04]">
-                <div
-                  className="absolute inset-y-0 right-0 rounded-l-md transition-all duration-700 ease-out"
-                  style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(to left, ${CATEGORY_MAP[cat].color}dd, ${CATEGORY_MAP[cat].color}55)`,
-                    boxShadow: top ? `0 0 18px ${CATEGORY_MAP[cat].color}66` : undefined,
-                  }}
-                />
-                <span
-                  className={`absolute left-2 top-1/2 -translate-y-1/2 font-mono text-[11px] ${
-                    pct > 88 ? "text-[#04140b]" : "text-white/85"
-                  }`}
-                  dir="ltr"
-                >
-                  {fmt(r.v)}
-                  {metric.unit ? <span className="opacity-70"> {metric.unit}</span> : null}
-                </span>
-              </div>
-              <div className="flex w-10 shrink-0 items-center justify-end gap-1">
-                {top && (
-                  <span className="rounded-sm bg-primary/15 px-1 py-0.5 font-mono text-[9px] text-primary">
-                    برتر
+                <div className="relative h-7 min-w-0 flex-1 overflow-hidden rounded-l-md bg-white/[0.04]">
+                  <div
+                    className="absolute inset-y-0 right-0 rounded-l-md transition-all duration-700 ease-out"
+                    style={{
+                      width: `${pct}%`,
+                      background: `linear-gradient(to left, ${CATEGORY_MAP[cat].color}dd, ${CATEGORY_MAP[cat].color}55)`,
+                      boxShadow: top ? `0 0 18px ${CATEGORY_MAP[cat].color}66` : undefined,
+                    }}
+                  />
+                  <span
+                    className={`absolute left-2 top-1/2 flex -translate-y-1/2 items-center gap-1.5 font-mono text-[11px] ${
+                      pct > 88 ? "text-[#04140b]" : "text-white/85"
+                    }`}
+                    dir="ltr"
+                  >
+                    {fmt(r.v)}
+                    {metric.unit ? <span className="opacity-70"> {metric.unit}</span> : null}
                   </span>
-                )}
-                <EvDot ev={r.row.ev} />
+                </div>
+                <div className="flex w-14 shrink-0 items-center justify-end gap-1.5">
+                  {top && (
+                    <span className="rounded-sm bg-primary/15 px-1 py-0.5 font-mono text-[9px] text-primary">
+                      برتر
+                    </span>
+                  )}
+                  <EvTag ev={r.ev} />
+                  <EvDot ev={r.ev} />
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <p className="mt-4 flex items-center justify-center gap-3 text-center text-[11px] text-white/40">
         <span className="inline-flex items-center gap-1.5">
@@ -304,8 +340,13 @@ function DuelBar({
   colorA: string;
   colorB: string;
 }) {
+  // all-zero / invalid pairs must not produce NaN bar widths — fall back to
+  // equal halves so the row still reads as «no measurable difference»
   const max = Math.max(va, vb);
-  const aWins = va === vb ? null : higherBetter ? va > vb : va < vb;
+  const sane = Number.isFinite(max) && max > 0;
+  const wa = sane ? (va / max) * 100 : 50;
+  const wb = sane ? (vb / max) * 100 : 50;
+  const aWins = !sane || va === vb ? null : higherBetter ? va > vb : va < vb;
   return (
     <div className="py-2">
       <div className="mb-1 flex items-center justify-between text-[11px]">
@@ -332,7 +373,7 @@ function DuelBar({
           <div
             className="h-full rounded-r-full transition-all duration-700"
             style={{
-              width: `${(va / max) * 100}%`,
+              width: `${wa}%`,
               background: colorA,
               opacity: aWins === false ? 0.45 : 1,
             }}
@@ -343,7 +384,7 @@ function DuelBar({
           <div
             className="h-full rounded-l-full transition-all duration-700"
             style={{
-              width: `${(vb / max) * 100}%`,
+              width: `${wb}%`,
               background: colorB,
               opacity: aWins === true ? 0.45 : 1,
             }}
@@ -359,10 +400,9 @@ function DuelMode() {
   const [aId, setA] = useState("kimi-k3");
   const [bId, setB] = useState("deepseek-v4-pro");
 
-  const A = MODELS.find((m) => m.id === aId)!;
-  const B = MODELS.find((m) => m.id === bId)!;
-  const benchA = benchOf(aId)!;
-  const benchB = benchOf(bId)!;
+  // defensive lookups — an unknown id must never crash the page
+  const A = MODELS.find((m) => m.id === aId) ?? MODELS[0]!;
+  const B = MODELS.find((m) => m.id === bId) ?? MODELS[1] ?? A;
   const sameCat = A.cat === B.cat;
 
   // metrics of both categories (deduped by key) — same-key rows become duels
@@ -372,10 +412,10 @@ function DuelMode() {
     for (const mt of [...METRICS[A.cat], ...METRICS[B.cat]]) {
       if (seen.has(mt.key)) continue;
       seen.add(mt.key);
-      out.push({ mt, va: benchA.m[mt.key], vb: benchB.m[mt.key] });
+      out.push({ mt, va: metricValue(A.id, mt.key), vb: metricValue(B.id, mt.key) });
     }
     return out;
-  }, [A.cat, B.cat, benchA, benchB]);
+  }, [A, B]);
 
   const sizeA = sizeFor(A, 10);
   const sizeB = sizeFor(B, 10);
@@ -390,8 +430,8 @@ function DuelMode() {
         (r) =>
           r.va !== undefined &&
           r.vb !== undefined &&
-          r.mt.higherBetter === r.va > r.vb &&
-          r.va !== r.vb,
+          r.va !== r.vb &&
+          (r.mt.higherBetter ? r.va > r.vb : r.va < r.vb),
       ).length
     : 0;
 
@@ -509,23 +549,30 @@ function DuelMode() {
               />
             );
           }
-          const one =
-            r.va !== undefined
-              ? { m: A, v: r.va, side: "a" as const }
-              : r.vb !== undefined
-                ? { m: B, v: r.vb, side: "b" as const }
-                : null;
-          if (!one) return null;
+          // one-sided metric — the side WITHOUT the datum reads «ناموجود», never 0
           return (
             <div
               key={r.mt.key}
-              className="flex items-center justify-between border-b border-white/[0.04] py-1.5 text-[11px]"
+              className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/[0.04] py-1.5 text-[11px]"
             >
-              <span className="text-white/40">{r.mt.fa}</span>
-              <span className="font-mono text-white/75" dir="ltr">
-                {one.side === "a"
-                  ? `${fmt(one.v)} ${r.mt.unit} ◂ ${A.en}`
-                  : `${B.en} ▸ ${fmt(one.v)} ${r.mt.unit}`}
+              <span className="text-left font-mono text-white/75" dir="ltr">
+                {r.va !== undefined ? (
+                  <>
+                    {fmt(r.va)} {r.mt.unit} ◂ {A.en}
+                  </>
+                ) : (
+                  <span className="text-white/30">{MISSING_FA}</span>
+                )}
+              </span>
+              <span className="px-2 text-center text-white/40">{r.mt.fa}</span>
+              <span className="text-right font-mono text-white/75" dir="ltr">
+                {r.vb !== undefined ? (
+                  <>
+                    {B.en} ▸ {fmt(r.vb)} {r.mt.unit}
+                  </>
+                ) : (
+                  <span className="text-white/30">{MISSING_FA}</span>
+                )}
               </span>
             </div>
           );

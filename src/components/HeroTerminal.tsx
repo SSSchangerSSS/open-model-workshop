@@ -15,18 +15,19 @@ const COMMANDS: Record<string, { desc: string; run: () => string[] }> = {
     desc: "نمایش همین راهنما",
     run: () => [
       "فرمان‌های موجود:",
-      ...Object.keys(COMMANDS).map((c) => `  ${c.padEnd(10, " ")} — ${COMMANDS[c].desc}`),
+      ...Object.keys(COMMANDS).map((c) => `  ${c.padEnd(10, " ")} — ${COMMANDS[c]?.desc ?? ""}`),
       "نکته: لاتین تایپ کنید؛ خروجی‌ها فارسی‌اند.",
     ],
   },
   status: {
-    desc: "وضعیت زنده دیتاسنتر",
+    desc: "وضعیت نمایشی دیتاسنتر (شبیه‌سازی، نه مانیتورینگ واقعی)",
     run: () => [
-      "RACKS ......... 44/44 ONLINE",
-      "GPU-LOAD ...... " + (58 + Math.floor(Math.random() * 30)) + "%",
-      "TEMP .......... " + (54 + Math.floor(Math.random() * 12)) + "°C",
-      "THROUGHPUT .... " + (48 + Math.floor(Math.random() * 26)) + " tok/s",
-      "UPTIME ........ 99.98%",
+      "— وضعیت نمایشی (شبیه‌سازی)، دادهٔ واقعی نیست —",
+      "RACKS ......... 44/44 ONLINE (نمایشی)",
+      "GPU-LOAD ...... " + (58 + Math.floor(Math.random() * 30)) + "% (نمایشی)",
+      "TEMP .......... " + (54 + Math.floor(Math.random() * 12)) + "°C (نمایشی)",
+      "THROUGHPUT .... " + (48 + Math.floor(Math.random() * 26)) + " tok/s (نمایشی)",
+      "UPTIME ........ 99.98% (نمایشی)",
     ],
   },
   models: {
@@ -54,7 +55,7 @@ const COMMANDS: Record<string, { desc: string; run: () => string[] }> = {
   contact: {
     desc: "راه اتصال به متخصص",
     run: () => [
-      "کانال امن: دکمه «ارتباط با متخصص» در پایین همین صفحه،",
+      "سریع‌ترین راه: دکمهٔ «ارتباط با متخصص» در پایین همین صفحه،",
       "یا مسیر /contact — پاسخ‌گویی کمتر از یک روز کاری.",
     ],
   },
@@ -172,13 +173,13 @@ export function HeroTerminal() {
               const n = Math.min(history.length - 1, hIdx + 1);
               if (n >= 0) {
                 setHIdx(n);
-                setValue(history[n]);
+                setValue(history[n] ?? "");
               }
             } else if (e.key === "ArrowDown") {
               e.preventDefault();
               const n = hIdx - 1;
               setHIdx(n);
-              setValue(n >= 0 ? history[n] : "");
+              setValue(n >= 0 ? (history[n] ?? "") : "");
             }
           }}
           className="hero-terminal-input flex-1 bg-transparent text-sm outline-none"

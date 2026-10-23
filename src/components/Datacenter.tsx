@@ -6,32 +6,13 @@ import { ContactTerminal } from "./ContactTerminal";
 import { HeroTerminal } from "./HeroTerminal";
 import MatrixBackdrop from "./MatrixBackdrop";
 import { isCompactDevice } from "@/lib/device";
+import { useIdleReveal } from "@/lib/use-idle-reveal";
 
 const DatacenterScene = lazy(() => import("./DatacenterScene"));
 
 /** One-time client tier — phones / low-power devices get the 2D backdrop
  *  and never download the ~1MB three.js chunk on content pages. */
 const COMPACT = isCompactDevice();
-
-/** Desktop: wait for the browser to go idle before pulling the ~900KB
- *  three.js chunk. First paint, hydration and INP stay clean; the corridor
- *  fades in over the CSS fallback a moment later. */
-function useIdleReveal() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (COMPACT) return;
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    };
-    let t: number | undefined;
-    if (w.requestIdleCallback) w.requestIdleCallback(() => setReady(true), { timeout: 2500 });
-    else t = window.setTimeout(setReady, 1200);
-    return () => {
-      if (t !== undefined) clearTimeout(t);
-    };
-  }, []);
-  return ready;
-}
 
 const models = [
   { name: "Qwen", detail: "گفتگو و پردازش فارسی" },
@@ -43,7 +24,10 @@ const models = [
 export default function Datacenter() {
   const [model, setModel] = useState(-1);
   const [open, setOpen] = useState(false);
-  const idleReady = useIdleReveal();
+  // Desktop only: wait for browser idle before pulling the ~900KB three.js
+  // chunk (first paint, hydration and INP stay clean). On compact devices
+  // the 2D backdrop renders and the chunk is never requested.
+  const idleReady = useIdleReveal() && !COMPACT;
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement;

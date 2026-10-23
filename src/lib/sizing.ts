@@ -175,7 +175,24 @@ function nodeBaseCost(gpusPerNode: number): number {
   return 12000; // 8-GPU server platform
 }
 
-export function sizeFor(m: ModelSpec, users: number): SizingResult {
+/**
+ * Normalize a raw «concurrent users» input coming from ANY source (slider,
+ * editable number field, deep-link, compare page, tests):
+ * - non-finite (NaN/±Infinity/undefined-typed junk) → 1
+ * - negative / zero → 1
+ * - fractional → rounded to nearest integer
+ * - above the honest configurator cap → MAX_USERS
+ * The engine must never divide by zero or emit invalid output.
+ */
+export function clampUsers(users: number): number {
+  if (typeof users !== "number" || Number.isNaN(users) || users === Number.NEGATIVE_INFINITY)
+    return 1;
+  if (users === Number.POSITIVE_INFINITY) return MAX_USERS;
+  return Math.min(MAX_USERS, Math.max(1, Math.round(users)));
+}
+
+export function sizeFor(m: ModelSpec, rawUsers: number): SizingResult {
+  const users = clampUsers(rawUsers);
   const gpu = GPUS[m.gpu];
   const weights = m.weightsGb * 1.08; // CUDA context, activations, framework
   const kv = m.kvGbPerUser * users;

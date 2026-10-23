@@ -13,9 +13,11 @@ import {
   type Palette,
 } from "@/lib/three-shared";
 import { isCompactDevice } from "@/lib/device";
+import { buildRacks, MODEL_LABELS, INFRA_LABELS, RACK_FA, RACK_FA_INFRA } from "@/lib/rack-layout";
 
 export { getPalette, makeLabelTexture, RACK_PANEL_VERT, RACK_PANEL_FRAG };
 export type { Palette };
+export { MODEL_LABELS, buildRacks, MODEL_RACK_SLOTS } from "@/lib/rack-layout";
 
 /** Bloom is desktop-only and lives in its own lazy chunk (BloomLayer). */
 const BloomLayer = lazy(() => import("./BloomLayer"));
@@ -137,73 +139,25 @@ function Ceiling({ p }: { p: Palette }) {
 /* Server racks — procedural LED panel shader + hover/pick/proximity   */
 /* ------------------------------------------------------------------ */
 
-// RACK_PANEL_VERT / RACK_PANEL_FRAG live in @/lib/three-shared
+// MODEL_LABELS / INFRA_LABELS / buildRacks / MODEL_RACK_SLOTS live in @/lib/rack-layout
 
-export const MODEL_LABELS = [
-  { short: "QWEN", label: "QWEN · چت فارسی" },
-  { short: "LLAMA", label: "LLAMA · ایجنت سازمانی" },
-  { short: "DEEPSEEK", label: "DEEPSEEK · استدلال" },
-  { short: "MISTRAL", label: "MISTRAL · استنتاج سریع" },
-] as const;
-
-const INFRA_LABELS = [
-  "N8N · WORKFLOWS",
-  "FLOWISE · RAG",
-  "GPU RIG · RTX 4090",
-  "ذخیره‌سازی · NVME",
-  "COOLING · INROW",
-  "QDRANT · VECTOR DB",
-  "VLLM · SERVE",
-  "مانیتورینگ ۲۴/۷",
-  "BACKUP · SNAPSHOT",
-  "امنیت · فایروال",
-];
-
-// makeLabelTexture lives in @/lib/three-shared (shared with GalaxyScene)
-
-type RackData = {
+type SceneRack = {
   pos: [number, number, number];
   seed: number;
   label: string | null;
   model: number;
   no: number;
 };
-function buildRacks(): RackData[] {
-  const racks: RackData[] = [];
-  const modelZ = [-9, -15.5, -22, -28.5]; // one rack per model, alternating sides
-  let infra = 0;
-  for (let side = 0; side < 2; side++) {
-    const x = side === 0 ? -2.6 : 2.6;
-    for (let i = 0; i < 22; i++) {
-      const z = 8.5 - i * 3.0;
-      const mi = modelZ.indexOf(z);
-      let label: string | null = null;
-      let model = -1;
-      if (mi >= 0 && side === i % 2) {
-        label = MODEL_LABELS[mi].label;
-        model = mi;
-      } else if (i % 2 === 0) {
-        label = INFRA_LABELS[infra++ % INFRA_LABELS.length];
-      }
-      racks.push({
-        pos: [x, 1.16, z],
-        seed: (side * 31 + i * 7.13) % 100,
-        label,
-        model,
-        no: racks.length + 1,
-      });
-    }
-  }
-  return racks;
-}
 
-const RACK_FA = new Map<number, string>([
-  [-1, "رک زیرساخت — خاموش و بی‌خطر؛ فقط چراغ‌هایش می‌رقصند."],
-  [0, "رک Qwen — گفتگو و پردازش زبان فارسی. کلیک: انتخاب مدل"],
-  [1, "رک Llama — ایجنت‌های سازمانی. کلیک: انتخاب مدل"],
-  [2, "رک DeepSeek — استدلال و کدنویسی. کلیک: انتخاب مدل"],
-  [3, "رک Mistral — استنتاج سریع و محلی. کلیک: انتخاب مدل"],
-]);
+function toSceneRacks(): SceneRack[] {
+  return buildRacks().map((r) => ({
+    pos: [r.x, 1.16, r.z] as [number, number, number],
+    seed: r.seed,
+    label: r.label,
+    model: r.model,
+    no: r.no,
+  }));
+}
 
 function Racks({
   p,
@@ -216,9 +170,9 @@ function Racks({
   model: number;
   reduced: boolean;
   matrixFont: boolean;
-  onPickModel?: (i: number) => void;
+  onPickModel?: ((i: number) => void) | undefined;
 }) {
-  const racks = useMemo(buildRacks, []);
+  const racks = useMemo(toSceneRacks, []);
   const panelMats = useRef<THREE.ShaderMaterial[]>([]);
   const [hover, setHover] = useState(-1);
 
@@ -244,7 +198,7 @@ function Racks({
     for (let i = 0; i < panelMats.current.length; i++) {
       const m = panelMats.current[i];
       if (!m) continue;
-      if (!reduced) m.uniforms.uTime.value += dt;
+      if (!reduced) m.uniforms["uTime"]!.value += dt;
       const rack = racks[i];
       if (!rack) continue;
       // combined highlight: selected model > hovered > proximity to walker
@@ -255,7 +209,8 @@ function Racks({
         hover === i ? 0.85 : 0,
         reduced ? 0 : prox,
       );
-      m.uniforms.uBoost.value += (target - m.uniforms.uBoost.value) * (1 - Math.exp(-6 * dt));
+      m.uniforms["uBoost"]!.value +=
+        (target - m.uniforms["uBoost"]!.value) * (1 - Math.exp(-6 * dt));
     }
   });
 
@@ -355,7 +310,7 @@ function Racks({
                   RACK-{String(r.no).padStart(2, "0")}
                 </span>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/90 whitespace-nowrap">
-                  {RACK_FA.get(r.model) ?? "رک زیرساخت — خاموش و بی‌خطر؛ فقط چراغ‌هایش می‌رقصند."}
+                  {r.model >= 0 ? (RACK_FA[r.model] ?? RACK_FA_INFRA) : RACK_FA_INFRA}
                 </p>
                 {r.label && (
                   <p className="mt-1 font-mono text-[10px] text-accent" dir="auto">
@@ -384,7 +339,7 @@ function ShowcaseCore({
   p: Palette;
   reduced: boolean;
   matrixFont: boolean;
-  onContact?: () => void;
+  onContact?: (() => void) | undefined;
 }) {
   const core = useRef<THREE.Mesh>(null);
   const shell = useRef<THREE.Mesh>(null);
@@ -497,8 +452,8 @@ function World({
   model: number;
   reduced: boolean;
   matrixFont: boolean;
-  onPickModel?: (i: number) => void;
-  onContact?: () => void;
+  onPickModel?: ((i: number) => void) | undefined;
+  onContact?: (() => void) | undefined;
 }) {
   return (
     <>

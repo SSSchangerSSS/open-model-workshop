@@ -5,6 +5,7 @@ import { Reveal } from "@/components/Reveal";
 import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { isCompactDevice } from "@/lib/device";
+import { useIdleReveal } from "@/lib/use-idle-reveal";
 import {
   CATEGORIES,
   CATEGORY_MAP,
@@ -20,27 +21,10 @@ const GalaxyScene = lazy(() => import("@/components/GalaxyScene"));
 
 /* The three.js chunk (~950KB / ~240KB gzip) is the single heaviest asset on
    the site. Keep it OFF the first paint of this route on every device: hold
-   a pure-CSS starfield until the browser is idle, then fetch + boot the
-   galaxy. On a Galaxy M12 this turns a multi-second freeze into an instant
-   page with a graceful upgrade. */
+   a pure-CSS starfield until the browser is idle (or an explicit user
+   opt-in), then fetch + boot the galaxy. On a Galaxy M12 this turns a
+   multi-second freeze into an instant page with a graceful upgrade. */
 const COMPACT = isCompactDevice();
-
-function useGalaxyReveal() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    };
-    let t: number | undefined;
-    const fire = () => setReady(true);
-    if (w.requestIdleCallback) w.requestIdleCallback(fire, { timeout: COMPACT ? 3000 : 1800 });
-    else t = window.setTimeout(fire, COMPACT ? 2400 : 1200);
-    return () => {
-      if (t !== undefined) clearTimeout(t);
-    };
-  }, []);
-  return ready;
-}
 
 /** Pure-CSS deep-space placeholder — zero JS, zero WebGL, near-zero paint cost. */
 function GalaxyPlaceholder({ booting }: { booting?: boolean }) {
@@ -84,7 +68,7 @@ function GalaxyReveal(props: {
   pick: (i: number) => void;
   toggleCat: (c: ModelCategory) => void;
 }) {
-  const ready = useGalaxyReveal();
+  const ready = useIdleReveal(COMPACT ? 2400 : 1200, COMPACT ? 3000 : 1800);
   if (!ready) return <GalaxyPlaceholder />;
   return (
     <Suspense fallback={<GalaxyPlaceholder booting />}>

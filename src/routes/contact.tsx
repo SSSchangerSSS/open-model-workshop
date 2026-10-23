@@ -3,8 +3,8 @@ import { Shell } from "@/components/Shell";
 import { ContactTerminal } from "@/components/ContactTerminal";
 import { Reveal } from "@/components/Reveal";
 import {
-  Copy,
   Check,
+  Copy,
   Mail,
   MessageCircle,
   Phone,
@@ -12,11 +12,13 @@ import {
   ShieldCheck,
   FileSearch,
   Rocket,
+  TriangleAlert,
 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import MatrixBackdrop from "@/components/MatrixBackdrop";
 import { isCompactDevice } from "@/lib/device";
+import { CONTACT_CHANNELS, OFFICE_HOURS, isOfficeOpen, type ContactChannel } from "@/lib/contact";
 
 const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
 
@@ -43,29 +45,7 @@ export const Route = createFileRoute("/contact")({
   component: Contact,
 });
 
-const CHANNELS = [
-  {
-    icon: MessageCircle,
-    label: "تلگرام",
-    value: "@hoosh_bartar",
-    ltr: true,
-    href: "https://t.me/hoosh_bartar",
-  },
-  {
-    icon: Mail,
-    label: "ایمیل",
-    value: "hello@hooshbartar.ir",
-    ltr: true,
-    href: "mailto:hello@hooshbartar.ir",
-  },
-  {
-    icon: Phone,
-    label: "تلفن دفتر",
-    value: "۰۲۱ - ۹۱۰۰ ۰۰۰۰",
-    ltr: false,
-    href: "tel:+982191000000",
-  },
-] as const;
+const CHANNEL_ICONS = { telegram: MessageCircle, mail: Mail, phone: Phone } as const;
 
 const CYCLE = [
   {
@@ -109,7 +89,7 @@ function TehranClock() {
   });
   const parts = fmt.formatToParts(now);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  const weekend = ["جمعه"].includes(get("weekday"));
+  const open = isOfficeOpen(now);
   return (
     <div className="rack-card lift p-5">
       <p className="font-mono text-[10px] text-primary/70 tracking-widest" dir="ltr">
@@ -119,53 +99,79 @@ function TehranClock() {
         {get("hour")}:{get("minute")}
         <span className="time-blink text-primary/60">:{get("second")}</span>
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {get("weekday")} —{" "}
-        {weekend
-          ? "دفتر تعطیل است؛ پیام بگذارید، صبح شنبه پاسخ می‌گیرید."
-          : "دفتر باز است · پاسخ < ۲ ساعت کاری"}
+      <p className="mt-1 text-xs text-muted-foreground">{OFFICE_HOURS.noteFa}</p>
+      <p className="mt-2 flex items-center gap-2 text-xs font-bold">
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${open ? "status-dot" : "bg-muted-foreground/50"}`}
+          aria-hidden
+        />
+        <span className={open ? "text-primary" : "text-muted-foreground"}>
+          {open ? "الان دفتر باز است" : "الان دفتر بسته است — پیام بگذارید، اول وقت پاسخ می‌دهیم"}
+        </span>
       </p>
     </div>
   );
 }
 
-function ChannelCard({ c }: { c: (typeof CHANNELS)[number] }) {
+function ChannelCard({ c }: { c: ChannelCardProps }) {
   const [copied, setCopied] = useState(false);
-  const Icon = c.icon;
+  const [error, setError] = useState("");
+  const Icon = CHANNEL_ICONS[c.icon];
+  const isExternal = c.href.startsWith("http");
+
+  async function copy() {
+    setError("");
+    try {
+      await navigator.clipboard.writeText(c.value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+      setError("کپی خودکار نشد — مقدار زیر قابل انتخاب و کپی دستی است.");
+    }
+  }
+
   return (
     <div className="rack-card lift scan-hover p-5 group relative">
       <div className="flex items-center gap-3">
-        <span className="grid place-items-center h-10 w-10 rounded-md border border-primary/30 bg-primary/10 text-primary transition group-hover:scale-110">
+        <span className="grid place-items-center h-10 w-10 shrink-0 rounded-md border border-primary/30 bg-primary/10 text-primary transition group-hover:scale-110">
           <Icon size={18} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{c.label}</p>
-          <bdi
-            dir={c.ltr ? "ltr" : "rtl"}
-            className="block font-mono text-sm font-bold text-foreground truncate"
+          {/* the whole value IS the link — href from shared config, never a nested button */}
+          <a
+            href={c.href}
+            {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="block min-h-6 font-mono text-sm font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
+            aria-label={`${c.actionFa} — ${c.value}`}
           >
-            {c.value}
-          </bdi>
+            <bdi dir="rtl" className="truncate">
+              {c.value}
+            </bdi>
+          </a>
         </div>
+        {/* copy button — a sibling of the link, never nested inside it */}
         <button
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(c.value);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1600);
-            } catch {
-              /* clipboard unavailable */
-            }
-          }}
+          type="button"
+          onClick={copy}
           aria-label={`کپی ${c.label}`}
-          className="shrink-0 rounded-md border border-border p-2 text-muted-foreground hover:text-primary hover:border-primary/60 transition"
+          className="min-h-11 min-w-11 shrink-0 rounded-md border border-border p-2.5 text-muted-foreground hover:text-primary hover:border-primary/60 transition"
         >
           {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
         </button>
       </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground/80">{c.actionFa}</p>
+      {error && (
+        <p role="alert" className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-300">
+          <TriangleAlert size={12} className="mt-0.5 shrink-0" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
+type ChannelCardProps = ContactChannel;
 
 function Contact() {
   return (
@@ -184,14 +190,14 @@ function Contact() {
       </div>
 
       <div
-        className="cv-auto relative z-10 max-w-5xl mx-auto px-6 py-20"
+        className="cv-auto relative z-10 max-w-5xl mx-auto px-5 md:px-6 py-16 md:py-20"
         style={{ "--cv-size": "1400px" } as React.CSSProperties}
       >
-        <p className="font-mono text-primary mb-2" dir="ltr">
-          &gt; establish human connection --secure
+        <p className="font-mono text-xs text-primary mb-2" dir="ltr">
+          &gt; connect --to=human
         </p>
         <p className="font-mono text-xs text-muted-foreground mb-5" dir="ltr">
-          [tunnel: aes-256 · operator standing by]
+          [یک انسان پاسخ می‌دهد — پاسخ‌گویی کمتر از یک روز کاری]
         </p>
         <h1 className="text-4xl font-black mb-3">
           ارتباط با <span className="text-gradient">هوش برتر</span>
@@ -205,8 +211,8 @@ function Contact() {
           {/* right column (start in RTL): channels + clock + cycle */}
           <div className="space-y-4">
             <div className="grid sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-              {CHANNELS.map((c) => (
-                <Reveal key={c.label} delay={60}>
+              {CONTACT_CHANNELS.map((c) => (
+                <Reveal key={c.id} delay={60}>
                   <ChannelCard c={c} />
                 </Reveal>
               ))}
@@ -214,8 +220,11 @@ function Contact() {
             <Reveal delay={120}>
               <ClientOnly
                 fallback={
-                  <div className="rack-card p-5 font-mono text-xs text-muted-foreground" dir="ltr">
-                    TEHRAN HQ // --:--:--
+                  <div className="rack-card p-5">
+                    <p className="font-mono text-xs text-muted-foreground" dir="ltr">
+                      TEHRAN HQ // --:--:--
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">{OFFICE_HOURS.noteFa}</p>
                   </div>
                 }
               >

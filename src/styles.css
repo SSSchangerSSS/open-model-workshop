@@ -112,14 +112,21 @@
 @utility animate-aurora {
   animation: aurora 14s ease-in-out infinite alternate;
 }
+/* Scroll-reveal — progressive enhancement ONLY. By default (no JS) the
+   content is fully visible; the hidden pre-reveal state applies only when
+   <html> carries `js`, added by an inline head script before first paint. */
 @utility reveal {
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+html.js .reveal {
   opacity: 0;
   transform: translateY(32px);
-  transition: all 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
-  &.in {
-    opacity: 1;
-    transform: none;
-  }
+}
+html.js .reveal.in {
+  opacity: 1;
+  transform: none;
 }
 @utility border-beam {
   position: relative;
@@ -203,8 +210,9 @@ html {
 }
 
 /* ---------- SITE ENTRY (boot intro) ---------- */
-/* Rendered into the prerendered HTML so the FIRST paint is the intro;
-   the home page reveals only after it completes. */
+/* Desktop-only first-visit brand moment. Mobile, short viewports,
+   reduced-motion and no-JS users go straight to the content — the overlay
+   is display:none BEFORE first paint, never a blocker. */
 #boot-overlay {
   position: fixed;
   inset: 0;
@@ -219,6 +227,16 @@ html.intro-done #boot-overlay {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+@media (max-width: 1023px) {
+  #boot-overlay {
+    display: none;
+  }
+}
+@media (max-height: 560px) {
+  #boot-overlay {
+    display: none;
+  }
 }
 .boot-line {
   opacity: 0;

@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
 
 /*
- * Site entry ("ورودی سایت") — the intro MUST be the first thing the user
- * sees, and the home page reveals after it. So this overlay is rendered
- * into the prerendered/SSG HTML itself (no client-only gate): the very
- * first paint is the boot corridor, and the page sits behind it until
- * the intro completes.
+ * Site entry ("ورودی سایت") — a short brand moment on DESKTOP first visits.
+ * It is deliberately OUT of the critical path:
  *
- * - Animation of the boot log + brand is pure CSS (styles.css) so it runs
- *   even before JS/hydration.
- * - Repeat visits: an inline script in <head> (see __root.tsx) adds
- *   `intro-done` to <html> BEFORE first paint, so the overlay never
- *   flashes on navigations within the same session.
- * - First visit: we set the sessionStorage flag immediately on mount,
- *   add `intro-done` at ~3s (CSS fades the overlay out), then unmount.
+ * - Mobile (<= 1023px) and prefers-reduced-motion: `#boot-overlay` is
+ *   display:none via CSS BEFORE first paint — no blocking intro, and the
+ *   overlay markup is never interactive.
+ * - No JavaScript: a <noscript> style in <head> (see __root.tsx) hides it,
+ *   so the content is never covered.
+ * - Repeat visits: the inline head script adds `intro-done` to <html>
+ *   before first paint, so the overlay never flashes again in a session.
+ * - When JS runs, the overlay is UNMOUNTED (removed from the DOM), not
+ *   merely hidden — hundreds of animated elements must not stay alive.
  */
 
 const RACKS = 10;
@@ -62,7 +61,7 @@ export function Intro() {
 
   useEffect(() => {
     // `intro-done` is added pre-paint by the inline head script on repeat
-    // visits — then the overlay is already display:none via CSS.
+    // visits — the overlay is already display:none via CSS, so unmount now.
     if (document.documentElement.classList.contains("intro-done")) {
       setGone(true);
       return;
@@ -73,7 +72,9 @@ export function Intro() {
       /* private mode */
     }
     const t1 = setTimeout(() => document.documentElement.classList.add("intro-done"), 3050);
-    const t2 = setTimeout(setGone, 3900);
+    // IMPORTANT: pass an explicit value — `setTimeout(setGone, …)` calls the
+    // setter with undefined and React bails out, leaving the overlay mounted.
+    const t2 = setTimeout(() => setGone(true), 3900);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -93,7 +94,7 @@ export function Intro() {
   if (gone) return null;
 
   return (
-    <div id="boot-overlay" style={{ perspective: "700px" }}>
+    <div id="boot-overlay" style={{ perspective: "700px" }} aria-label="ورود نمایشی به دیتاسنتر">
       <div className="absolute inset-0 intro-fly" style={{ transformStyle: "preserve-3d" }}>
         {/* floor */}
         <div

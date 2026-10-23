@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { ContactTerminal } from "./ContactTerminal";
 import { HeroTerminal } from "./HeroTerminal";
 import MatrixBackdrop from "./MatrixBackdrop";
+import { SceneBoundary, SceneFailedNote } from "./SceneBoundary";
 import { isCompactDevice } from "@/lib/device";
 import { useIdleReveal } from "@/lib/use-idle-reveal";
 
@@ -42,12 +43,14 @@ export default function Datacenter() {
             <MatrixBackdrop />
           ) : idleReady ? (
             <Suspense fallback={null}>
-              <DatacenterScene
-                mode="scroll"
-                model={model}
-                onPickModel={setModel}
-                onContact={() => setOpen(true)}
-              />
+              <SceneBoundary fallback={<SceneFailedNote />}>
+                <DatacenterScene
+                  mode="scroll"
+                  model={model}
+                  onPickModel={setModel}
+                  onContact={() => setOpen(true)}
+                />
+              </SceneBoundary>
             </Suspense>
           ) : (
             <SceneFallback />

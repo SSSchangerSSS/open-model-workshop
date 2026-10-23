@@ -6,6 +6,7 @@ import { lazy, Suspense, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import { ArrowLeft, Check, ChevronDown, Clock, PackageCheck, Wrench } from "lucide-react";
 import MatrixBackdrop from "@/components/MatrixBackdrop";
+import { SceneBoundary } from "@/components/SceneBoundary";
 import { isCompactDevice } from "@/lib/device";
 
 const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
@@ -181,7 +182,9 @@ function Services() {
             <MatrixBackdrop />
           ) : (
             <Suspense fallback={null}>
-              <DatacenterScene mode="fixed" model={-1} />
+              <SceneBoundary fallback={null}>
+                <DatacenterScene mode="fixed" model={-1} />
+              </SceneBoundary>
             </Suspense>
           )}
         </ClientOnly>

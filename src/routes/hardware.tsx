@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { isCompactDevice } from "@/lib/device";
 import { useIdleReveal } from "@/lib/use-idle-reveal";
 import { saveHardwareInquiry } from "@/lib/contact";
+import { SceneBoundary, SceneFailedNote } from "@/components/SceneBoundary";
 import {
   CATEGORIES,
   CATEGORY_MAP,
@@ -77,12 +78,14 @@ function GalaxyView(props: {
 }) {
   return (
     <Suspense fallback={<GalaxyPlaceholder booting />}>
-      <GalaxyScene
-        focus={props.focusIndex}
-        catFilter={props.catFilter}
-        onPick={props.pick}
-        onCorePick={props.toggleCat}
-      />
+      <SceneBoundary fallback={<SceneFailedNote />}>
+        <GalaxyScene
+          focus={props.focusIndex}
+          catFilter={props.catFilter}
+          onPick={props.pick}
+          onCorePick={props.toggleCat}
+        />
+      </SceneBoundary>
     </Suspense>
   );
 }

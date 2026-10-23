@@ -17,6 +17,7 @@ import {
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ClientOnly } from "@tanstack/react-router";
 import MatrixBackdrop from "@/components/MatrixBackdrop";
+import { SceneBoundary } from "@/components/SceneBoundary";
 import { isCompactDevice } from "@/lib/device";
 import { CONTACT_CHANNELS, OFFICE_HOURS, isOfficeOpen, type ContactChannel } from "@/lib/contact";
 
@@ -183,7 +184,9 @@ function Contact() {
             <MatrixBackdrop />
           ) : (
             <Suspense fallback={null}>
-              <DatacenterScene mode="fixed" model={-1} />
+              <SceneBoundary fallback={null}>
+                <DatacenterScene mode="fixed" model={-1} />
+              </SceneBoundary>
             </Suspense>
           )}
         </ClientOnly>

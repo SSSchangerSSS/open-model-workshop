@@ -1,32 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import { scrollStore } from "@/lib/scroll-progress";
 import { depth01, rackNoAt, tourZ, zoneAt } from "@/lib/tour";
+import { subscribeScrollMetrics } from "@/lib/scroll-metrics";
 
 /**
  * Fixed HUD that makes the scroll-walk legible:
  * - left-edge depth ruler (elevator-style marker)
  * - current sector label (fa + en) with glitch refresh
  * - live rack counter
- * Reads the shared scrollStore every frame; renders nothing meaningful at hero.
+ * Reads the shared scrollStore — updates are driven by the ONE shared
+ * scroll listener (no dedicated always-on rAF loop); React state changes
+ * only when the depth actually moves.
  */
 export function SectorHUD() {
   const [state, setState] = useState({ p: 0, z: 12 });
-  const raf = useRef(0);
+  const dotRef = useRef<HTMLSpanElement>(null);
+  const meterRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
-    const loop = () => {
-      const p = scrollStore.target;
-      setState((s) => (Math.abs(s.p - p) > 0.0005 ? { p, z: tourZ(p) } : s));
-      raf.current = requestAnimationFrame(loop);
-    };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
+    let lastP = -1;
+    // rAF-driven element updates for the ruler dot + meters (no re-render),
+    // React state only for the sector label text when it changes.
+    return subscribeScrollMetrics(({ progress }) => {
+      scrollStore.target = progress;
+      const moved = Math.abs(progress - lastP) > 0.0005;
+      if (!moved) return;
+      lastP = progress;
+      const z = tourZ(progress);
+      if (dotRef.current) {
+        dotRef.current.style.top = `calc(${depth01(z) * 100}% - 3px)`;
+      }
+      if (meterRef.current) {
+        meterRef.current.textContent = `${Math.round(-z)}m`;
+      }
+      setState((s) => (Math.abs(s.p - progress) > 0.004 ? { p: progress, z } : s));
+    });
   }, []);
 
   const visible = state.p > 0.035;
   const stop = zoneAt(state.p);
-  const depth = depth01(state.z);
-  const meters = Math.round(-state.z);
 
   return (
     <>
@@ -48,11 +60,14 @@ export function SectorHUD() {
             />
           ))}
           <span
+            ref={dotRef}
             className="absolute -left-[3px] h-[7px] w-[7px] rotate-45 bg-primary shadow-[0_0_12px_var(--primary)] transition-[top] duration-150 ease-out"
-            style={{ top: `calc(${depth * 100}% - 3px)` }}
+            style={{ top: "calc(0% - 3px)" }}
           />
         </div>
-        <span className="font-mono text-[10px] text-primary tabular-nums">{meters}m</span>
+        <span ref={meterRef} className="font-mono text-[10px] text-primary tabular-nums">
+          12m
+        </span>
       </div>
 
       {/* sector label — bottom-left */}
@@ -86,7 +101,7 @@ export function SectorHUD() {
           className="panel-glass rounded-full px-3 py-1 font-mono text-[10px] text-primary"
           dir="ltr"
         >
-          {stop.zone} · {meters}m
+          {stop.zone} · {Math.round(-state.z)}m
         </span>
       </div>
     </>

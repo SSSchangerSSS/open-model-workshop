@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
 import { Intro } from "./Intro";
 
@@ -15,17 +16,17 @@ const nav = [
 export function Shell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // lock scroll + close on Escape while the mobile drawer is open
+  // If the viewport grows to desktop while the drawer is open (rotation,
+  // window resize), close it — otherwise the scroll lock would survive a
+  // menu that is visually hidden by CSS.
   useEffect(() => {
     if (!menuOpen) return;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
-    window.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = overflow;
-      window.removeEventListener("keydown", key);
+    const mq = window.matchMedia("(min-width: 768px)");
+    const close = () => {
+      if (mq.matches) setMenuOpen(false);
     };
+    mq.addEventListener("change", close);
+    return () => mq.removeEventListener("change", close);
   }, [menuOpen]);
 
   return (
@@ -33,6 +34,22 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* Global CRT overlays */}
       <div className="crt-scanlines" aria-hidden />
       <div className="crt-vignette" aria-hidden />
+
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(e) => {
+          // keep default anchor behavior; move focus for keyboard users
+          const main = document.getElementById("main-content");
+          if (main) {
+            e.preventDefault();
+            main.focus();
+            main.scrollIntoView();
+          }
+        }}
+      >
+        رفتن به محتوای اصلی
+      </a>
 
       <header className="border-b border-primary/25 bg-background/75 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-4">
@@ -42,7 +59,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </Link>
 
           {/* desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm">
+          <nav aria-label="ناوبری اصلی" className="hidden md:flex items-center gap-6 text-sm">
             {nav.map((n) => (
               <Link
                 key={n.to}
@@ -61,75 +78,79 @@ export function Shell({ children }: { children: ReactNode }) {
             dir="ltr"
           >
             <span className="flex items-center gap-1.5 text-primary">
-              <span className="status-dot" />
-              SYS.ONLINE
+              <span className="status-dot" aria-hidden />
+              SELF-HOSTED · OPEN-WEIGHT
             </span>
-            <span className="text-muted-foreground">UPTIME 99.98%</span>
           </div>
 
-          {/* mobile hamburger */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label="باز کردن منو"
-            aria-expanded={menuOpen}
-            className="md:hidden grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary bg-background/60"
-          >
-            <Menu size={20} />
-          </button>
+          {/* mobile hamburger → accessible Radix dialog */}
+          <DialogPrimitive.Root open={menuOpen} onOpenChange={setMenuOpen}>
+            <DialogPrimitive.Trigger
+              aria-label="باز کردن منو"
+              aria-controls="mobile-menu"
+              aria-expanded={menuOpen}
+              className="md:hidden grid place-items-center h-11 w-11 rounded-md border border-primary/40 text-primary bg-background/60"
+            >
+              <Menu size={20} />
+            </DialogPrimitive.Trigger>
+            <DialogPrimitive.Portal>
+              <DialogPrimitive.Overlay className="md:hidden fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
+              <DialogPrimitive.Content
+                id="mobile-menu"
+                aria-label="منوی موبایل"
+                className="md:hidden fixed inset-y-0 right-0 z-50 w-[82%] max-w-xs border-s border-primary/30 bg-background/95 backdrop-blur-md p-6 flex flex-col gap-1 shadow-[0_0_60px_rgba(0,0,0,0.7)] outline-none"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <DialogPrimitive.Title className="font-mono text-primary font-bold text-sm">
+                    منوی هوش برتر
+                  </DialogPrimitive.Title>
+                  <DialogPrimitive.Close
+                    aria-label="بستن منو"
+                    className="grid place-items-center h-11 w-11 rounded-md border border-primary/40 text-primary"
+                  >
+                    <X size={20} />
+                  </DialogPrimitive.Close>
+                </div>
+                <DialogPrimitive.Description className="sr-only">
+                  فهرست صفحات سایت — انتخاب یک گزینه، منو را می‌بندد.
+                </DialogPrimitive.Description>
+                {nav.map((n, i) => (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    onClick={() => setMenuOpen(false)}
+                    activeProps={{ className: "border-primary/60 text-primary bg-primary/15" }}
+                    activeOptions={{ exact: true }}
+                    className="flex min-h-12 items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3 text-base font-bold text-foreground hover:text-primary hover:border-primary/50 active:bg-primary/15 transition"
+                  >
+                    <span className="font-mono text-[10px] text-primary/60" dir="ltr">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {n.label}
+                  </Link>
+                ))}
+                <div
+                  className="mt-auto pt-6 flex items-center gap-2 font-mono text-[11px]"
+                  dir="ltr"
+                >
+                  <span className="flex items-center gap-1.5 text-primary">
+                    <span className="status-dot" aria-hidden />
+                    SELF-HOSTED
+                  </span>
+                </div>
+              </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+          </DialogPrimitive.Root>
         </div>
       </header>
 
-      {/* mobile drawer */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-            onClick={() => setMenuOpen(false)}
-          />
-          <nav className="absolute inset-y-0 right-0 w-[78%] max-w-xs border-s border-primary/30 bg-background/95 backdrop-blur-md p-6 flex flex-col gap-1 shadow-[0_0_60px_rgba(0,0,0,0.7)]">
-            <div className="flex items-center justify-between mb-6">
-              <span className="font-mono text-primary font-bold text-sm" dir="ltr">
-                &gt; menu_
-              </span>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="بستن منو"
-                className="grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {nav.map((n, i) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3.5 text-base font-bold text-foreground hover:text-primary hover:border-primary/50 active:bg-primary/15 transition"
-              >
-                <span className="font-mono text-[10px] text-primary/60" dir="ltr">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {n.label}
-              </Link>
-            ))}
-            <div className="mt-auto pt-6 flex items-center gap-2 font-mono text-[11px]" dir="ltr">
-              <span className="flex items-center gap-1.5 text-primary">
-                <span className="status-dot" />
-                SYS.ONLINE
-              </span>
-              <span className="text-muted-foreground">UPTIME 99.98%</span>
-            </div>
-          </nav>
-        </div>
-      )}
-
-      <main className="flex-1">{children}</main>
+      <main id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">
+        {children}
+      </main>
 
       <footer className="relative z-10 border-t border-primary/25 bg-background/80 backdrop-blur-md py-6 text-center text-sm text-muted-foreground font-mono px-4">
         <p dir="ltr" className="text-[11px] text-primary/70 mb-1">
-          DC-01 // CORRIDOR-CAM: LIVE // 44 RACKS ONLINE
+          DC-01 // CORRIDOR-CAM: DEMO // 44 RACKS
         </p>
         © ۱۴۰۵ هوش برتر — اتوماسیون و زیرساخت هوش مصنوعی
       </footer>
@@ -215,10 +236,10 @@ export const services = [
     title: "پشتیبانی و بهینه‌سازی",
     desc: "کوانتیزه‌سازی، بهینه‌سازی سرعت، امنیت داده و پشتیبانی مستمر.",
     features: [
-      "پایش لحظه‌ای tok/s، VRAM و صف درخواست",
+      "پایش tok/s، VRAM و صف درخواست",
       "بهینه‌سازی batching و کوانتیزه‌سازی مجدد",
       "به‌روزرسانی امنیتی و patch مدیریت‌شده",
-      "SLA پاسخ‌گویی با کانال تلگرام اختصاصی",
+      "کانال پاسخ‌گویی اختصاصی",
     ],
     tools: ["Grafana", "Loki", "Fail2ban", "Backrest"],
     eta: "قرارداد ماهانه",

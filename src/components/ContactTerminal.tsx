@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Mail, Terminal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { buildDraft, NO_RECIPIENT_NOTE } from "@/lib/contact";
 
 const SUBJECTS = [
   "اتوماسیون n8n / Flowise",
@@ -9,30 +10,49 @@ const SUBJECTS = [
   "پشتیبانی و بهینه‌سازی",
 ] as const;
 
+/** فقط گام‌های واقعی کپی — ادعای رمزنگاری/ارسال حذف شد (بدون پشتوانه). */
 const LOG_LINES = [
   "> draft.assemble(subject, contact) ✔",
-  "> encrypt(aes-256) ✔",
   "> clipboard.write() ✔",
   "> ready — paste into your mail client ✔",
 ];
 
+export type ContactPreset = {
+  /** نام مدل/خدمت برای خط موضوع و متن پیش‌نویس */
+  topic: string;
+  /** تنظیمات انتخابی غیرحساس (مثلاً «۲۵ کاربر همزمان») */
+  detail?: string | undefined;
+};
+
 export function ContactTerminal({
-  model = "مشاوره عمومی",
+  preset,
   onClose,
 }: {
-  model?: string;
-  onClose?: () => void;
+  preset?: ContactPreset | undefined;
+  onClose?: (() => void) | undefined;
 }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [subject, setSubject] = useState<string>(model);
+  const [subject, setSubject] = useState<string>(preset?.topic ?? "مشاوره عمومی");
   const [logStep, setLogStep] = useState(-1);
   const timer = useRef<number | null>(null);
+  const presetDetailRef = useRef<string | undefined>(undefined);
 
-  useEffect(() => setSubject(model), [model]);
+  useEffect(() => {
+    if (preset?.topic) setSubject(preset.topic);
+    if (preset?.detail && preset.detail !== presetDetailRef.current) {
+      presetDetailRef.current = preset.detail;
+      setMessage((prev) => {
+        const line = `تنظیمات انتخاب‌شده: ${preset.detail}`;
+        if (prev.includes(line)) return prev;
+        return prev ? `${prev}\n${line}` : line;
+      });
+    }
+  }, [preset]);
+
   useEffect(
     () => () => {
       if (timer.current) window.clearInterval(timer.current);
@@ -40,13 +60,13 @@ export function ContactTerminal({
     [],
   );
 
-  async function prepare(e: React.FormEvent) {
+  const draft = buildDraft({ subject, name, email, message });
+
+  async function copyDraft(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     try {
-      await navigator.clipboard.writeText(
-        `موضوع: درخواست مشاوره ${subject}\nنام: ${name}\nایمیل: ${email}\n\n${message}`,
-      );
+      await navigator.clipboard.writeText(draft);
       setCopied(true);
       // animated transmission log
       setLogStep(0);
@@ -61,9 +81,13 @@ export function ContactTerminal({
         });
       }, 420);
     } catch {
-      setError("کپی انجام نشد؛ لطفاً متن پیام را دستی کپی کنید.");
+      setCopied(false);
+      setError(
+        "کپی خودکار انجام نشد (دسترسی کلیپ‌بورد رد شد). متن پیش‌نویس پایین را انتخاب و دستی کپی کنید.",
+      );
     }
   }
+
   return (
     <div className="terminal-window w-full" dir="rtl">
       <div className="flex items-center justify-between border-b px-5 py-4">
@@ -97,7 +121,8 @@ export function ContactTerminal({
                 setCopied(false);
                 setLogStep(-1);
               }}
-              className={`rounded-full border px-3 py-1.5 text-xs transition ${
+              aria-pressed={subject === s}
+              className={`rounded-full border px-3 py-2 text-xs transition ${
                 subject === s
                   ? "border-primary bg-primary/15 text-primary"
                   : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary"
@@ -108,12 +133,14 @@ export function ContactTerminal({
           ))}
         </div>
 
-        <form onSubmit={prepare} className="mt-6 space-y-4">
+        <form onSubmit={copyDraft} className="mt-6 space-y-4">
           <label className="block text-sm">
             نام شما
             <input
               className="terminal-input mt-2"
               required
+              name="name"
+              autoComplete="name"
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -129,6 +156,9 @@ export function ContactTerminal({
               dir="ltr"
               type="email"
               required
+              name="email"
+              autoComplete="email"
+              inputMode="email"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -151,8 +181,9 @@ export function ContactTerminal({
               placeholder="از پروژه‌تان بگویید…"
             />
           </label>
-          <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Mail size={14} /> آدرس ایمیل متخصص هنوز تنظیم نشده؛ پیام ارسال نمی‌شود.
+          <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+            <Mail size={14} className="mt-0.5 shrink-0" />
+            {NO_RECIPIENT_NOTE}
           </p>
           <Button className="w-full h-12" type="submit">
             {copied ? <Check /> : <Copy />}
@@ -162,6 +193,7 @@ export function ContactTerminal({
             <div
               className="rounded-md border border-primary/30 bg-primary/5 p-3 font-mono text-[11px]"
               dir="ltr"
+              aria-hidden
             >
               {LOG_LINES.slice(0, logStep + 1).map((l, i) => (
                 <p
@@ -174,10 +206,26 @@ export function ContactTerminal({
               ))}
             </div>
           )}
-          <p role="status" className="text-sm text-primary">
+          <p role="status" aria-live="polite" className="text-sm text-primary">
             {error || (copied ? "پیش‌نویس آماده است؛ هنوز برای کسی ارسال نشده." : "")}
           </p>
         </form>
+
+        {/* پیش‌نمایش قابل انتخاب — برای کپی دستی وقتی Clipboard API در دسترس نیست */}
+        <details className="mt-2 rounded-md border border-border bg-muted/20 p-3">
+          <summary className="cursor-pointer text-xs font-bold text-muted-foreground select-none">
+            پیش‌نمایش متن ایمیل (برای کپی دستی)
+          </summary>
+          <textarea
+            readOnly
+            value={draft}
+            rows={6}
+            dir="rtl"
+            onFocus={(e) => e.currentTarget.select()}
+            aria-label="پیش‌نمایش متن ایمیل"
+            className="mt-2 w-full rounded border border-border bg-background/60 p-2 font-mono text-xs leading-relaxed text-foreground"
+          />
+        </details>
       </div>
     </div>
   );

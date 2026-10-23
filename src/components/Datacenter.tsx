@@ -1,37 +1,20 @@
-import { useEffect, lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, ClientOnly } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, Mail, RotateCcw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ContactTerminal } from "./ContactTerminal";
 import { HeroTerminal } from "./HeroTerminal";
 import MatrixBackdrop from "./MatrixBackdrop";
+import { SceneBoundary } from "./SceneBoundary";
 import { isCompactDevice } from "@/lib/device";
+import { useWhenIdle } from "@/lib/idle";
 
 const DatacenterScene = lazy(() => import("./DatacenterScene"));
 
 /** One-time client tier — phones / low-power devices get the 2D backdrop
  *  and never download the ~1MB three.js chunk on content pages. */
 const COMPACT = isCompactDevice();
-
-/** Desktop: wait for the browser to go idle before pulling the ~900KB
- *  three.js chunk. First paint, hydration and INP stay clean; the corridor
- *  fades in over the CSS fallback a moment later. */
-function useIdleReveal() {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    if (COMPACT) return;
-    const w = window as Window & {
-      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
-    };
-    let t: number | undefined;
-    if (w.requestIdleCallback) w.requestIdleCallback(() => setReady(true), { timeout: 2500 });
-    else t = window.setTimeout(setReady, 1200);
-    return () => {
-      if (t !== undefined) clearTimeout(t);
-    };
-  }, []);
-  return ready;
-}
 
 const models = [
   { name: "Qwen", detail: "گفتگو و پردازش فارسی" },
@@ -43,36 +26,11 @@ const models = [
 export default function Datacenter() {
   const [model, setModel] = useState(-1);
   const [open, setOpen] = useState(false);
-  const idleReady = useIdleReveal();
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const dialog = document.querySelector('[role="dialog"]');
-    const first = dialog?.querySelector<HTMLElement>("button,input");
-    first?.focus();
-    function key(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-      if (e.key !== "Tab" || !dialog) return;
-      const nodes = Array.from(dialog.querySelectorAll<HTMLElement>("button,input,textarea"));
-      const first = nodes[0];
-      const last = nodes.at(-1);
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    }
-    window.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = overflow;
-      window.removeEventListener("keydown", key);
-      if (previous instanceof HTMLElement) previous.focus();
-    };
-  }, [open]);
+  // Desktop only: pull the three.js chunk when the browser goes idle.
+  // The old inline hook called `setTimeout(setReady, 1200)` — the state
+  // setter received no value, so browsers without requestIdleCallback
+  // never revealed the scene at all.
+  const idleReady = useWhenIdle(!COMPACT, 1800);
   const m = models[model];
 
   return (
@@ -80,18 +38,20 @@ export default function Datacenter() {
       {/* Fixed backdrop behind the whole page: real 3D corridor on desktop
           (revealed once the browser is idle), lightweight 2D matrix rain on
           phones — camera walks with scroll */}
-      <div className="scene-fixed" aria-hidden={false}>
+      <div className="scene-fixed" aria-hidden>
         <ClientOnly fallback={<SceneFallback />}>
           {COMPACT ? (
             <MatrixBackdrop />
           ) : idleReady ? (
             <Suspense fallback={null}>
-              <DatacenterScene
-                mode="scroll"
-                model={model}
-                onPickModel={setModel}
-                onContact={() => setOpen(true)}
-              />
+              <SceneBoundary fallback={<SceneFallback />}>
+                <DatacenterScene
+                  mode="scroll"
+                  model={model}
+                  onPickModel={setModel}
+                  onContact={() => setOpen(true)}
+                />
+              </SceneBoundary>
             </Suspense>
           ) : (
             <SceneFallback />
@@ -106,14 +66,33 @@ export default function Datacenter() {
             THE MATRIX / PRIVATE AI DATA&nbsp;CENTER
           </p>
           <h1 className="mt-4 font-black">
-            هوش برتر
-            <span className="text-primary cursor-blink" aria-hidden />
-          </h1>
-          <p className="mt-3 max-w-md text-sm md:text-base text-muted-foreground">
-            به راهروی دیتاسنتر ما خوش آمدید؛ رک‌ها را لمس کنید، فرمان بدهید، اسکرول کنید.
+            هوش مصنوعی و اتوماسیون،
             <br />
-            مدل‌های باز، سرورهای اختصاصی، اتوماسیون هوشمند — زیرساخت شما؛ هوش بی‌مرز.
+            روی زیرساخت <span className="text-gradient">خودتان</span>
+            <span className="cursor-blink" aria-hidden />
+          </h1>
+          <p className="mt-3 max-w-md text-base md:text-base text-muted-foreground">
+            مدل‌های باز، سرورهای اختصاصی و اتوماسیون هوشمند — داده شما نزد خودتان می‌ماند و هیچ
+            هزینه API ماهانه‌ای به سرویس خارجی پرداخت نمی‌شود.
           </p>
+          {/* دو اقدام اصلی — روی موبایل همیشه دیده می‌شوند */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button size="lg" className="h-12 glow" onClick={() => setOpen(true)}>
+              <Mail />
+              درخواست مشاوره
+            </Button>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="h-12 bg-background/60 backdrop-blur"
+            >
+              <Link to="/hardware">
+                برآورد سخت‌افزار
+                <ArrowLeft />
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Interactive console — left side (end side in RTL) */}
@@ -130,10 +109,10 @@ export default function Datacenter() {
         </div>
 
         <div className="datacenter-bottom">
-          <div className="flex flex-wrap gap-2 mb-4" dir="ltr">
-            {models.map((m, i) => (
+          <div className="flex flex-wrap gap-2" dir="ltr">
+            {models.map((m2, i) => (
               <Button
-                key={m.name}
+                key={m2.name}
                 variant="outline"
                 onClick={() => setModel(model === i ? -1 : i)}
                 aria-pressed={model === i}
@@ -144,7 +123,7 @@ export default function Datacenter() {
                 }
               >
                 <Server />
-                {m.name}
+                {m2.name}
               </Button>
             ))}
             <Button
@@ -189,24 +168,25 @@ export default function Datacenter() {
         </div>
       </section>
 
-      {open && (
-        <div
-          className="connection-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="ارتباط با متخصص"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div>
-            <ContactTerminal
-              model={m?.name || "زیرساخت هوش مصنوعی"}
-              onClose={() => setOpen(false)}
-            />
-          </div>
-        </div>
-      )}
+      {/* Radix Dialog: focus trap, Escape, scroll-lock + focus restore are
+          handled by the primitive — the old hand-rolled version locked body
+          overflow but never trapped or moved focus. */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="connection-dialog max-w-[520px] gap-0 overflow-y-auto max-h-[92svh] p-0 border-primary/30">
+          <DialogTitle asChild>
+            <h2 className="sr-only">ارتباط با متخصص هوش برتر</h2>
+          </DialogTitle>
+          <DialogDescription asChild>
+            <p className="sr-only">
+              فرم پیش‌نویس پیام برای درخواست مشاوره — پیام مستقیماً ارسال نمی‌شود.
+            </p>
+          </DialogDescription>
+          <ContactTerminal
+            preset={{ topic: m?.name || "زیرساخت هوش مصنوعی" }}
+            onClose={() => setOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

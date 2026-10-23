@@ -25,7 +25,7 @@ export function MatrixRain({
       const glyphs = "0123456789アイウエオカキクケコサシスセソابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی";
       for (let y = 0; y < 24; y++)
         for (let x = 0; x < 24; x++)
-          ctx.fillText(glyphs[(x * 7 + y * 11) % glyphs.length], x * 21 + 10, y * 21 + 19);
+          ctx.fillText(glyphs[(x * 7 + y * 11) % glyphs.length] ?? "0", x * 21 + 10, y * 21 + 19);
     }
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;

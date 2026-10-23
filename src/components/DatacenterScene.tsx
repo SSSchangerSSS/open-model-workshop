@@ -4,6 +4,7 @@ import { Html, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
 import { scrollStore } from "@/lib/scroll-progress";
 import { tourZ } from "@/lib/tour";
+import { buildRacks, INFRA_LABELS, MODEL_LABELS, RACK_FA } from "@/lib/datacenter-racks";
 import { MatrixRain } from "./MatrixRain";
 import {
   getPalette,
@@ -135,75 +136,11 @@ function Ceiling({ p }: { p: Palette }) {
 
 /* ------------------------------------------------------------------ */
 /* Server racks — procedural LED panel shader + hover/pick/proximity   */
+/* Rack layout/labels live in @/lib/datacenter-racks (pure data module */
+/* without three.js so tests stay light)                                */
 /* ------------------------------------------------------------------ */
 
-// RACK_PANEL_VERT / RACK_PANEL_FRAG live in @/lib/three-shared
-
-export const MODEL_LABELS = [
-  { short: "QWEN", label: "QWEN · چت فارسی" },
-  { short: "LLAMA", label: "LLAMA · ایجنت سازمانی" },
-  { short: "DEEPSEEK", label: "DEEPSEEK · استدلال" },
-  { short: "MISTRAL", label: "MISTRAL · استنتاج سریع" },
-] as const;
-
-const INFRA_LABELS = [
-  "N8N · WORKFLOWS",
-  "FLOWISE · RAG",
-  "GPU RIG · RTX 4090",
-  "ذخیره‌سازی · NVME",
-  "COOLING · INROW",
-  "QDRANT · VECTOR DB",
-  "VLLM · SERVE",
-  "مانیتورینگ ۲۴/۷",
-  "BACKUP · SNAPSHOT",
-  "امنیت · فایروال",
-];
-
 // makeLabelTexture lives in @/lib/three-shared (shared with GalaxyScene)
-
-type RackData = {
-  pos: [number, number, number];
-  seed: number;
-  label: string | null;
-  model: number;
-  no: number;
-};
-function buildRacks(): RackData[] {
-  const racks: RackData[] = [];
-  const modelZ = [-9, -15.5, -22, -28.5]; // one rack per model, alternating sides
-  let infra = 0;
-  for (let side = 0; side < 2; side++) {
-    const x = side === 0 ? -2.6 : 2.6;
-    for (let i = 0; i < 22; i++) {
-      const z = 8.5 - i * 3.0;
-      const mi = modelZ.indexOf(z);
-      let label: string | null = null;
-      let model = -1;
-      if (mi >= 0 && side === i % 2) {
-        label = MODEL_LABELS[mi].label;
-        model = mi;
-      } else if (i % 2 === 0) {
-        label = INFRA_LABELS[infra++ % INFRA_LABELS.length];
-      }
-      racks.push({
-        pos: [x, 1.16, z],
-        seed: (side * 31 + i * 7.13) % 100,
-        label,
-        model,
-        no: racks.length + 1,
-      });
-    }
-  }
-  return racks;
-}
-
-const RACK_FA = new Map<number, string>([
-  [-1, "رک زیرساخت — خاموش و بی‌خطر؛ فقط چراغ‌هایش می‌رقصند."],
-  [0, "رک Qwen — گفتگو و پردازش زبان فارسی. کلیک: انتخاب مدل"],
-  [1, "رک Llama — ایجنت‌های سازمانی. کلیک: انتخاب مدل"],
-  [2, "رک DeepSeek — استدلال و کدنویسی. کلیک: انتخاب مدل"],
-  [3, "رک Mistral — استنتاج سریع و محلی. کلیک: انتخاب مدل"],
-]);
 
 function Racks({
   p,
@@ -216,7 +153,7 @@ function Racks({
   model: number;
   reduced: boolean;
   matrixFont: boolean;
-  onPickModel?: (i: number) => void;
+  onPickModel?: ((i: number) => void) | undefined;
 }) {
   const racks = useMemo(buildRacks, []);
   const panelMats = useRef<THREE.ShaderMaterial[]>([]);
@@ -244,7 +181,7 @@ function Racks({
     for (let i = 0; i < panelMats.current.length; i++) {
       const m = panelMats.current[i];
       if (!m) continue;
-      if (!reduced) m.uniforms.uTime.value += dt;
+      if (!reduced) m.uniforms["uTime"]!.value += dt;
       const rack = racks[i];
       if (!rack) continue;
       // combined highlight: selected model > hovered > proximity to walker
@@ -255,7 +192,8 @@ function Racks({
         hover === i ? 0.85 : 0,
         reduced ? 0 : prox,
       );
-      m.uniforms.uBoost.value += (target - m.uniforms.uBoost.value) * (1 - Math.exp(-6 * dt));
+      const boost = m.uniforms["uBoost"]!;
+      boost.value += (target - boost.value) * (1 - Math.exp(-6 * dt));
     }
   });
 
@@ -384,7 +322,7 @@ function ShowcaseCore({
   p: Palette;
   reduced: boolean;
   matrixFont: boolean;
-  onContact?: () => void;
+  onContact?: (() => void) | undefined;
 }) {
   const core = useRef<THREE.Mesh>(null);
   const shell = useRef<THREE.Mesh>(null);
@@ -497,8 +435,8 @@ function World({
   model: number;
   reduced: boolean;
   matrixFont: boolean;
-  onPickModel?: (i: number) => void;
-  onContact?: () => void;
+  onPickModel?: ((i: number) => void) | undefined;
+  onContact?: (() => void) | undefined;
 }) {
   return (
     <>
@@ -543,10 +481,10 @@ export default function DatacenterScene({
   onPickModel,
   onContact,
 }: {
-  mode?: SceneMode;
-  model?: number;
-  onPickModel?: (i: number) => void;
-  onContact?: () => void;
+  mode?: SceneMode | undefined;
+  model?: number | undefined;
+  onPickModel?: ((i: number) => void) | undefined;
+  onContact?: (() => void) | undefined;
 }) {
   const [p] = useState(getPalette);
   const [reduced] = useState(

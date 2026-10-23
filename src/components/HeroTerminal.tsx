@@ -15,18 +15,18 @@ const COMMANDS: Record<string, { desc: string; run: () => string[] }> = {
     desc: "نمایش همین راهنما",
     run: () => [
       "فرمان‌های موجود:",
-      ...Object.keys(COMMANDS).map((c) => `  ${c.padEnd(10, " ")} — ${COMMANDS[c].desc}`),
+      ...Object.keys(COMMANDS).map((c) => `  ${c.padEnd(10, " ")} — ${COMMANDS[c]!.desc}`),
       "نکته: لاتین تایپ کنید؛ خروجی‌ها فارسی‌اند.",
     ],
   },
   status: {
-    desc: "وضعیت زنده دیتاسنتر",
+    desc: "وضعیت نمایشی دیتاسنتر",
     run: () => [
-      "RACKS ......... 44/44 ONLINE",
-      "GPU-LOAD ...... " + (58 + Math.floor(Math.random() * 30)) + "%",
-      "TEMP .......... " + (54 + Math.floor(Math.random() * 12)) + "°C",
-      "THROUGHPUT .... " + (48 + Math.floor(Math.random() * 26)) + " tok/s",
-      "UPTIME ........ 99.98%",
+      "RACKS ......... 44/44 ONLINE (نمایشی)",
+      "GPU-LOAD ...... " + (58 + Math.floor(Math.random() * 30)) + "% (نمایشی)",
+      "TEMP .......... " + (54 + Math.floor(Math.random() * 12)) + "°C (نمایشی)",
+      "THROUGHPUT .... " + (48 + Math.floor(Math.random() * 26)) + " tok/s (نمایشی)",
+      "توجه: این ترمینال دموی آموزشی است — به دیتاسنتر واقعی وصل نیست.",
     ],
   },
   models: {
@@ -54,8 +54,8 @@ const COMMANDS: Record<string, { desc: string; run: () => string[] }> = {
   contact: {
     desc: "راه اتصال به متخصص",
     run: () => [
-      "کانال امن: دکمه «ارتباط با متخصص» در پایین همین صفحه،",
-      "یا مسیر /contact — پاسخ‌گویی کمتر از یک روز کاری.",
+      "راه ارتباطی: دکمه «درخواست مشاوره» یا «ارتباط با متخصص» در همین صفحه،",
+      "یا مسیر /contact — پیش‌نویس پیام ساخته و کپی می‌شود.",
     ],
   },
   whoami: {
@@ -119,7 +119,7 @@ export function HeroTerminal() {
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <span className="flex items-center gap-2 text-primary font-mono text-[11px]" dir="ltr">
           <span className="terminal-dots" style={{ marginLeft: 0 }} />
-          guest@dc-01 — live console
+          guest@dc-01 — demo console
         </span>
         <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
           TTY-01
@@ -172,13 +172,13 @@ export function HeroTerminal() {
               const n = Math.min(history.length - 1, hIdx + 1);
               if (n >= 0) {
                 setHIdx(n);
-                setValue(history[n]);
+                setValue(history[n] ?? "");
               }
             } else if (e.key === "ArrowDown") {
               e.preventDefault();
               const n = hIdx - 1;
               setHIdx(n);
-              setValue(n >= 0 ? history[n] : "");
+              setValue(n >= 0 ? (history[n] ?? "") : "");
             }
           }}
           className="hero-terminal-input flex-1 bg-transparent text-sm outline-none"

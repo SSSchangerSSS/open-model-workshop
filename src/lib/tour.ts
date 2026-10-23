@@ -29,28 +29,28 @@ const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
 export function tourZ(p: number): number {
   const t = clamp01(p);
   for (let i = 0; i < TOUR.length - 1; i++) {
-    const a = TOUR[i];
-    const b = TOUR[i + 1];
+    const a = TOUR[i]!;
+    const b = TOUR[i + 1]!;
     if (t <= b.at || i === TOUR.length - 2) {
       const span = b.at - a.at || 1;
       return a.z + (b.z - a.z) * ease(clamp01((t - a.at) / span));
     }
   }
-  return TOUR[TOUR.length - 1].z;
+  return TOUR[TOUR.length - 1]!.z;
 }
 
 /** The sector the visitor is currently in (or approaching). */
 export function zoneAt(p: number): TourStop {
   const t = clamp01(p);
-  let stop = TOUR[0];
+  let stop = TOUR[0]!;
   for (const s of TOUR) if (t >= s.at - 0.02) stop = s;
   return stop;
 }
 
 /** Walk depth 0→1 for HUD meters. */
 export function depth01(z: number): number {
-  const start = TOUR[0].z;
-  const end = TOUR[TOUR.length - 1].z;
+  const start = TOUR[0]!.z;
+  const end = TOUR[TOUR.length - 1]!.z;
   return clamp01((start - z) / (start - end));
 }
 

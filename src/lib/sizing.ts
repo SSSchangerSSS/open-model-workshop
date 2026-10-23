@@ -175,7 +175,26 @@ function nodeBaseCost(gpusPerNode: number): number {
   return 12000; // 8-GPU server platform
 }
 
-export function sizeFor(m: ModelSpec, users: number): SizingResult {
+/**
+ * User-count policy (docs/ui-performance-audit.md §sizing):
+ * the engine — not just the Slider — owns validation, so every caller
+ * (chart, duel, table, deep link) gets the same guarantees:
+ *   NaN / Infinity / negative / 0  → 1 (smallest meaningful deployment)
+ *   fractional                      → floored
+ *   above MAX_USERS                 → capped (one cluster, not a datacenter)
+ * Result: no division by zero, no negative/NaN VRAM or price anywhere.
+ */
+export function sanitizeUsers(users: number): number {
+  if (typeof users !== "number" || Number.isNaN(users) || users === Number.NEGATIVE_INFINITY)
+    return 1;
+  if (users === Number.POSITIVE_INFINITY) return MAX_USERS;
+  const floored = Math.floor(users);
+  if (floored < 1) return 1;
+  return Math.min(floored, MAX_USERS);
+}
+
+export function sizeFor(m: ModelSpec, rawUsers: number): SizingResult {
+  const users = sanitizeUsers(rawUsers);
   const gpu = GPUS[m.gpu];
   const weights = m.weightsGb * 1.08; // CUDA context, activations, framework
   const kv = m.kvGbPerUser * users;

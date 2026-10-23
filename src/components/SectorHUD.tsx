@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { scrollStore } from "@/lib/scroll-progress";
 import { depth01, rackNoAt, tourZ, zoneAt } from "@/lib/tour";
 
@@ -11,16 +11,26 @@ import { depth01, rackNoAt, tourZ, zoneAt } from "@/lib/tour";
  */
 export function SectorHUD() {
   const [state, setState] = useState({ p: 0, z: 12 });
-  const raf = useRef(0);
 
+  // Scroll-driven, not a permanent rAF loop: the HUD used to wake the CPU
+  // every frame even when nothing moved. scrollStore only changes on scroll,
+  // so update from scroll (rAF-throttled) instead.
   useEffect(() => {
-    const loop = () => {
+    let raf = 0;
+    const update = () => {
       const p = scrollStore.target;
       setState((s) => (Math.abs(s.p - p) > 0.0005 ? { p, z: tourZ(p) } : s));
-      raf.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   const visible = state.p > 0.035;

@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 
 /*
- * Site entry ("ورودی سایت") — the intro MUST be the first thing the user
- * sees, and the home page reveals after it. So this overlay is rendered
- * into the prerendered/SSG HTML itself (no client-only gate): the very
- * first paint is the boot corridor, and the page sits behind it until
- * the intro completes.
+ * Site entry ("ورودی سایت") — desktop-only brand moment, OUT of the mobile
+ * critical path (docs/ui-performance-audit.md §Intro):
  *
- * - Animation of the boot log + brand is pure CSS (styles.css) so it runs
- *   even before JS/hydration.
- * - Repeat visits: an inline script in <head> (see __root.tsx) adds
- *   `intro-done` to <html> BEFORE first paint, so the overlay never
- *   flashes on navigations within the same session.
- * - First visit: we set the sessionStorage flag immediately on mount,
- *   add `intro-done` at ~3s (CSS fades the overlay out), then unmount.
+ * - SSR/SSG renders the overlay markup, but CSS keeps it display:none by
+ *   default. A tiny inline <head> script (__root.tsx) adds `intro-armed`
+ *   BEFORE first paint only when the intro may play: JS on, first visit,
+ *   desktop-width, motion allowed. Without JavaScript nothing is ever
+ *   armed, so the overlay can never cover the content.
+ * - Repeat visits: the same script adds `intro-done` pre-paint — no flash.
+ * - Mobile + reduced-motion: never armed → the page loads directly.
+ * - The `gone` unmount (real DOM removal, not just hiding) is driven by
+ *   setTimeout(() => setGone(true), …) — the old code passed the bare
+ *   setter so the timer argument leaked into setState and the overlay
+ *   node stayed in the DOM forever.
  */
 
 const RACKS = 10;
@@ -61,19 +62,16 @@ export function Intro() {
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    // `intro-done` is added pre-paint by the inline head script on repeat
-    // visits — then the overlay is already display:none via CSS.
-    if (document.documentElement.classList.contains("intro-done")) {
-      setGone(true);
-      return;
-    }
+    // The pre-paint head script arms/hides the overlay; when it already
+    // added `intro-done` (repeat visit) the CSS keeps it display:none.
+    if (!document.documentElement.classList.contains("intro-armed")) return;
     try {
       sessionStorage.setItem("intro", "1");
     } catch {
       /* private mode */
     }
     const t1 = setTimeout(() => document.documentElement.classList.add("intro-done"), 3050);
-    const t2 = setTimeout(setGone, 3900);
+    const t2 = setTimeout(() => setGone(true), 3900);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -140,6 +138,7 @@ export function Intro() {
         </p>
       </div>
       <button
+        type="button"
         onClick={skip}
         className="boot-line absolute bottom-8 left-8 rounded-lg border bg-card/70 px-4 py-2 text-sm text-muted-foreground hover:text-primary"
         style={{ animationDelay: "1.2s", pointerEvents: "auto" }}

@@ -13,7 +13,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
  * be hosted on GitHub Pages. Without it (Lovable builds / local dev),
  * the original SSR behavior is preserved untouched.
  */
-const pagesBasePath = process.env.PAGES_BASE_PATH;
+const pagesBasePath = process.env["PAGES_BASE_PATH"];
 
 export default defineConfig({
   tanstackStart: {

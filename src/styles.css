@@ -5,6 +5,7 @@
 /* ------------------------------------------------------------------ */
 /* Vazir Matrix — custom Persian pixel/matrix font (built locally from */
 /* Vazirmatn via scripts/make_matrix_font.py, SIL OFL 1.1 derivative)  */
+/* Kept for BRAND, short headings and terminal-flavoured details only. */
 /* ------------------------------------------------------------------ */
 @font-face {
   font-family: "Vazir Matrix";
@@ -17,6 +18,17 @@
   font-family: "Vazir Matrix";
   src: url("./assets/fonts/VazirMatrix-Bold-sub.woff2") format("woff2");
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Vazirmatn — readable Persian BODY font (SIL OFL 1.1, self-hosted,
+   variable 100–900 in one 109KB-gz file). The matrix pixel font is hard
+   to read for paragraphs; body copy uses this, identity stays matrix. */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("./assets/fonts/Vazirmatn-Variable.woff2") format("woff2-variations");
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -47,8 +59,9 @@
   --color-border: var(--border);
   --color-input: var(--border);
   --color-ring: var(--primary);
-  --font-sans: "Vazir Matrix", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Vazirmatn", "Vazir Matrix", system-ui, sans-serif;
+  --font-display: "Vazir Matrix", "Vazirmatn", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Vazir Matrix", monospace;
 }
 
 :root {
@@ -79,12 +92,34 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.75;
     background-image: radial-gradient(circle at 1px 1px, oklch(0.22 0.03 160) 1px, transparent 0);
     background-size: 32px 32px;
+    /* دکمه/فرم روی iOS زوم نکند — حداقل 16px در input ها هم تضمین شده */
+    -webkit-text-size-adjust: 100%;
+  }
+  /* برند و عناوین کوتاه: هویت ماتریکسی — بدنه: Vazirmatn خوانا */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    line-height: 1.4;
   }
   ::selection {
     background: var(--primary);
     color: var(--primary-foreground);
+  }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* iOS: جلوگیری از زوم خودکار روی فوکوس */
+    font-family: inherit;
   }
 }
 
@@ -113,12 +148,19 @@
   animation: aurora 14s ease-in-out infinite alternate;
 }
 @utility reveal {
-  opacity: 0;
-  transform: translateY(32px);
-  transition: all 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
-  &.in {
+  /* Content is VISIBLE by default (SSR + no-JS). JS opts into the
+     entrance animation by setting data-reveal="pending" right before
+     observing — animation is an enhancement, never a gate. */
+  &[data-reveal="pending"] {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  &[data-reveal="pending"].in {
     opacity: 1;
     transform: none;
+    transition:
+      opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+      transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
   }
 }
 @utility border-beam {
@@ -183,6 +225,24 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Skip link — hidden until focused, first tab stop of every page */
+.skip-link {
+  position: fixed;
+  top: -48px;
+  inset-inline-start: 12px;
+  z-index: 200;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-weight: 700;
+  font-size: 14px;
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 12px;
+}
 @utility intro-fly {
   animation: fly 2.9s cubic-bezier(0.5, 0, 0.2, 1) forwards;
 }
@@ -203,17 +263,22 @@ html {
 }
 
 /* ---------- SITE ENTRY (boot intro) ---------- */
-/* Rendered into the prerendered HTML so the FIRST paint is the intro;
-   the home page reveals only after it completes. */
+/* SSR renders the markup, but the overlay is INERT by default: it only
+   appears when the pre-paint head script adds `intro-armed` (JS on, first
+   visit, desktop width, motion allowed). No JS → no overlay, ever. */
 #boot-overlay {
   position: fixed;
   inset: 0;
   z-index: 100;
   overflow: hidden;
   background: var(--color-background);
+  display: none;
   transition:
     opacity 0.7s ease,
     visibility 0s linear 0.7s;
+}
+html.intro-armed:not(.intro-done) #boot-overlay {
+  display: block;
 }
 html.intro-done #boot-overlay {
   opacity: 0;
@@ -247,6 +312,13 @@ html.intro-done #boot-overlay {
   #boot-overlay {
     display: none;
   }
+}
+
+/* Dialog (Radix) used for the specialist connection form */
+.connection-dialog {
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
 }
 
 /* ---------- MATRIX 3D SCENE LAYOUT ---------- */
@@ -322,34 +394,80 @@ html.intro-done #boot-overlay {
   touch-action: pan-y;
 }
 
-/* Hero overlays (first viewport of home) — fill exactly the space under the header */
+/* Hero overlays (first viewport of home). Mobile: natural FLOW layout —
+   no absolute pinning, no forced full-viewport height; CTAs never hide
+   behind the scene. Desktop keeps the cinematic absolute composition. */
 .hero-over-scene {
   position: relative;
-  height: calc(100svh - 64px);
-  min-height: 600px;
+  min-height: calc(100svh - 64px);
   z-index: 1;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 40px;
+  padding: 28px 20px calc(24px + env(safe-area-inset-bottom));
 }
 .hero-over-scene .datacenter-copy,
 .hero-over-scene .datacenter-bottom,
 .hero-over-scene button {
   pointer-events: auto;
 }
-.datacenter-copy {
-  position: absolute;
-  top: 38px;
-  right: max(24px, calc((100% - 1152px) / 2));
+/* mobile flow: stack the hero rows with rhythm */
+.datacenter-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* خوانایی متن روی بارش ماتریس در موبایل — اسکریم ملایم پشت کپی */
+@media (max-width: 767px) {
+  .datacenter-copy {
+    position: relative;
+    padding: 18px 16px;
+    border-radius: 12px;
+    background:
+      radial-gradient(
+        120% 100% at 50% 0%,
+        color-mix(in oklab, var(--background) 82%, transparent),
+        color-mix(in oklab, var(--background) 55%, transparent) 70%,
+        transparent
+      );
+  }
+  .datacenter-bottom {
+    position: relative;
+    padding: 14px 12px;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--background) 62%, transparent);
+  }
 }
 .datacenter-copy h1 {
-  font-size: 52px;
-  line-height: 1.2;
-  text-shadow: 0 0 32px color-mix(in oklab, var(--primary) 45%, transparent);
+  font-size: clamp(30px, 5.2vw, 56px);
+  line-height: 1.3;
 }
-.datacenter-bottom {
-  position: absolute;
-  bottom: 26px;
-  right: max(24px, calc((100% - 1152px) / 2));
-  left: max(24px, calc((100% - 1152px) / 2));
+@media (min-width: 768px) {
+  .hero-over-scene {
+    display: block;
+    height: calc(100svh - 64px);
+    min-height: 600px;
+    padding: 0;
+  }
+  .datacenter-copy {
+    position: absolute;
+    top: 38px;
+    right: max(24px, calc((100% - 1152px) / 2));
+  }
+  .datacenter-copy h1 {
+    font-size: 52px;
+  }
+  .datacenter-bottom {
+    position: absolute;
+    bottom: 26px;
+    right: max(24px, calc((100% - 1152px) / 2));
+    left: max(24px, calc((100% - 1152px) / 2));
+  }
+  .datacenter-bottom .datacenter-bottom-actions {
+    margin-top: 16px;
+  }
 }
 
 /* Interactive hero console — sits on the left (end side in RTL) */
@@ -761,22 +879,20 @@ html.intro-done #boot-overlay {
 }
 
 @media (max-width: 640px) {
-  .datacenter-copy {
-    top: 24px;
-    left: 24px;
-    right: 24px;
-  }
-  .datacenter-copy h1 {
-    font-size: 38px;
-  }
-  .datacenter-bottom {
-    bottom: 18px;
-  }
   .crt-scanlines {
     opacity: 0.3;
   }
   .scroll-hint {
     display: none;
+  }
+  /* Marquee only runs on desktop — on phones it becomes a static,
+     wrapped chip list (no infinite background motion / battery drain). */
+  .marquee-mask > * {
+    animation: none;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
   }
 }
 /* Hero console only on large screens; mobile keeps buttons + scene */
@@ -794,9 +910,10 @@ html.intro-done #boot-overlay {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+  /* entrance is enhancement-only: never hide content */
   .reveal {
-    opacity: 1;
-    transform: none;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 

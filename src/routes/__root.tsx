@@ -12,24 +12,39 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { withBase } from "../lib/base";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-16 text-center">
+      <p className="font-mono text-xs text-primary" dir="ltr">
+        &gt; find / --path=unknown — exit 1
+      </p>
+      <h1 className="mt-4 text-6xl font-black text-foreground">۴۰۴</h1>
+      <h2 className="mt-3 text-xl font-semibold text-foreground">این صفحه پیدا نشد</h2>
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+        نشانی‌ای که باز کرده‌اید وجود ندارد یا جابه‌جا شده است. می‌توانید از خانه ادامه دهید یا سراغ
+        یکی از مسیرهای پرکاربرد بروید.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <Link
+          to="/"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          بازگشت به خانه
+        </Link>
+        <Link
+          to="/hardware"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/50 px-5 py-2.5 text-sm font-bold text-primary transition-colors hover:bg-primary/10"
+        >
+          کهکشان سخت‌افزار
+        </Link>
+        <Link
+          to="/compare"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-5 py-2.5 text-sm font-bold text-foreground transition-colors hover:border-primary/50"
+        >
+          مقایسهٔ مدل‌ها
+        </Link>
       </div>
     </div>
   );
@@ -43,31 +58,32 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-16 text-center">
+      <p className="font-mono text-xs text-primary" dir="ltr">
+        &gt; render --failed — exit 1
+      </p>
+      <h1 className="mt-4 text-2xl font-black text-foreground">این صفحه بارگذاری نشد</h1>
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+        مشکلی سمت ما پیش آمد. می‌توانید دوباره تلاش کنید یا به خانه برگردید؛ اگر تکرار شد، چند دقیقه
+        بعد مراجعه کنید.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            router.invalidate();
+            reset();
+          }}
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          تلاش دوباره
+        </button>
+        <a
+          href={withBase("/")}
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-5 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-accent"
+        >
+          بازگشت به خانه
+        </a>
       </div>
     </div>
   );
@@ -90,14 +106,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
       // no third-party request, no render-blocking stylesheet round-trip.
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      // favicon MUST go through withBase(): a bare "/favicon.ico" 404s when
+      // the site is deployed under /open-model-workshop/ (GitHub Pages).
+      { rel: "icon", href: withBase("favicon.ico"), type: "image/x-icon" },
     ],
     scripts: [
       {
-        // Runs BEFORE first paint: if the boot intro already played in this
-        // session, hide it instantly (no flash on repeat visits / SPA navigations).
+        // Runs BEFORE first paint. Two jobs:
+        // 1) Arm the boot intro only when it is allowed to play (first visit
+        //    of this session, JS on, desktop width, motion allowed). Without
+        //    JS nothing is ever armed → the overlay stays display:none and
+        //    never covers the content.
+        // 2) On repeat visits add `intro-done` instantly (no flash).
         children:
-          "try{if(sessionStorage.getItem('intro'))document.documentElement.classList.add('intro-done')}catch(e){}",
+          "try{" +
+          "if(sessionStorage.getItem('intro')){document.documentElement.classList.add('intro-done')}" +
+          "else if(!matchMedia('(prefers-reduced-motion: reduce)').matches && !matchMedia('(max-width: 767px)').matches){document.documentElement.classList.add('intro-armed')}" +
+          "}catch(e){}",
       },
       {
         // Structured data for search engines

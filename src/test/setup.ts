@@ -5,6 +5,17 @@ Object.defineProperty(window, "scrollTo", {
   value: () => {},
 });
 
+// jsdom lacks ResizeObserver — Radix Slider (and the scroll-metrics module) need it
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+Object.defineProperty(window, "ResizeObserver", {
+  writable: true,
+  value: ResizeObserverStub,
+});
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({

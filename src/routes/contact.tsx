@@ -114,7 +114,7 @@ function TehranClock() {
   );
 }
 
-function ChannelCard({ c }: { c: ChannelCardProps }) {
+export function ChannelCard({ c }: { c: ChannelCardProps }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const Icon = CHANNEL_ICONS[c.icon];

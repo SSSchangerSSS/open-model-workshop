@@ -95,6 +95,78 @@
 - حذف افکت CRT از روی متن و فرم‌ها.
 - موبایل: مقایسهٔ قبل/بعد بدون نیاز به drag.
 
-## ۲) After — پس از اصلاحات
+## ۲) After — پس از اصلاحات (کامیت‌های 1d2235e → فعلی)
 
-(در پایان کار تکمیل می‌شود.)
+همهٔ اعداد از خروجی واقعی همین مخزن است. روش مقایسه: production build یکسان
+(PAGES_BASE_PATH=/open-model-workshop/، خروجی SSG)، cache سرد (rm -rf .output
+node_modules/.nitro)، سه اجرا — خروجی سه اجرا بایت‌به‌بایت یکسان بود، پس میانه = همان مقدار.
+
+### وضعیت دستورها (بعد)
+
+| دستور | نتیجه |
+|---|---|
+| `bun run lint` | exit 0 — 0 error، 8 warning (همه react-refresh/only-export-components در فایل‌های ui — از baseline کاهش از 11) |
+| `bun run typecheck` (script جدید `tsc --noEmit`) | exit 0 — ۰ خطا (baseline: 13 خطا) |
+| `bun run test` | 9 فایل، **40 تست پاس** (baseline: 1 تست) |
+| `bun run build` | موفق |
+| `PAGES_BASE_PATH=... bun run build` | موفق — ۶ صفحه pre-render + 404.html در CI |
+
+### اندازهٔ فایل‌های خروجی — قبل → بعد (SSG، سرد، میانهٔ ۳ اجرا)
+
+| فایل | قبل | بعد | Δ gzip |
+|---|---|---|---|
+| `index-*.js` (entry مشترک) | 347.59 kB / **111.11 gzip** | 145.18 kB / **47.17 gzip** | **−64 gzip (−58%)** |
+| `styles-*.css` | 118.29 / 19.93 | 85.13 / 15.16 | −4.8 gzip |
+| `three-shared-*.js` (کد صحنه‌ها) | 927.93 / 247.55 | 19.07 / 7.14 | خود کتابخانهٔ three.js (~909 kB) حالا چانک مستقلِ فقط-سه‌بعدی است |
+| `sizing-*.js` (دادهٔ ۶۱ مدل) | 55.31 / 15.08 | 55.45 / 15.17 | ثابت (داده‌ها حفظ شد) |
+| `BloomLayer-*.js` (lazy) | 82.98 / 22.65 | 82.99 / 22.62 | ثابت |
+
+بودجهٔ اولیهٔ موبایل (~250KB gzip): صفحهٔ خانه در حالت lite ≈ **95KB gzip**
+(entry 47 + routes 11.6 + css 15.2 + sizing 15.2 + Reveal ~5 + MatrixBackdrop 1.1 + متفرقه) —
+درون بودجه. سهم‌ها از خروجی واقعی build خوانده شد.
+
+### اثبات شبکهٔ واقعی ( PerformanceTrace با resource timing مرورگر)
+
+- بارگذاری موبایل `/hardware` (حالت پیش‌فرض): **صفر** درخواست برای three/Galaxy/Bloom —
+  resource-timing مرورگر: `0`. فایل‌های JS واقعاً دریافتی: index، routes، hardware، sizing،
+  Reveal، use-idle-reveal، آیکون‌ها.
+- کلیک «فعال‌کردن نمای سه‌بعدی»: همان لحظه ۲ چانک سه‌بعدی fetch می‌شود — سه‌بعدی کاملاً
+  opt-in است.
+- overrideهای `?tier=full|lite` و `?idle=0` حفظ/افزوده شدند (تست دارند).
+
+### تست‌های افزوده‌شده (9 فایل، 40 تست)
+
+1. `rack-layout` — نگاشت صریح هر ۴ رک مدل (جانشین تطبیق شکنندهٔ مختصات)
+2. `sizing` — clampUsers (۰/منفی/اعشاری/NaN/±∞/سقف) + سلامت فیزیکی خروجی برای ۶۱ مدل
+3. `benchmarks` — صفر = دادهٔ معتبر، NaN/∞ = «ناموجود»؛ سازگاری BENCH با کاتالوگ؛ preset ها
+4. `contact` — ساعت کاری پیکربندی‌پذیر (جمعه بسته، مرزهای ساعته)؛ کانال‌های مشترک
+5. `use-idle-reveal` — مسیر بدون requestIdleCallback (callback با مقدار صریح)، cancel هندل idle، ?idle=0
+6. `shell-menu` — منوی موبایل: skip link، aria-expanded/controls، فوکوس داخل dialog، Escape، بستن با ناوبری
+7. `contact-copy` — کپی موفق/ناموفق (alert قابل مشاهده + پیش‌نویس انتخاب‌پذیر)، لینک واقعی کانال‌ها بدون دکمهٔ تودرتو
+8. `hardware-no-webgl` — محاسبه‌گر کامل بدون هیچ canvas/WebGL (jsdom کلاً canvas ندارد)، clamp ورودی کاربر، حالت خالی جست‌وجو
+9. `not-found` — 404 فارسی با اقدام بازگشت
+
+### اسکرین‌شات‌های قبل/بعد
+
+مسیر: `docs/screenshots/before|after/`
+- `home-mobile.png` (390)، `home-320.png`، `home-desktop.png` (1440)
+- `hardware-mobile.png` (فهرست پیش‌فرض)، `hardware-sheet.png` (پنل موبایل)،
+  `hardware-3d-mobile.png` (پس از opt-in)، `hardware-desktop-3d.png` (tier=full)، `hardware-768.png`
+- `contact-mobile.png`، `menu-open-390.png`، `notfound-320.png`
+
+### شبیه‌سازی ≠ تست دستگاه واقعی
+
+بررسی‌ها در کروم هدلس (دسکتاپ 1440 و موبایل 390/320/768 شبیه‌سازی‌شده) انجام شد.
+**دستگاه واقعی لمس‌شدنی در دسترس نبود**؛ INP/انگشت‌لمس، کیبورد واقعی iOS/Android و
+Save-Data روی دستگاه واقعی باید با یک دستگاه فیزیکی تأیید شود. Lighthouse اجرا نشد
+(کروم کامل/سرویس Lighthouse در محیط در دسترس نبود) — عدد Lighthouse ادعا نمی‌شود.
+دادهٔ میدانی (RUM) وجود ندارد؛ LCP/INP/CLS صدک ۷۵ قابل گزارش نیست.
+
+### موارد حل‌نشده / باقی‌مانده
+
+- **ارسال واقعی فرم**: endpoint سمت سرور تنظیم نشده؛ فرم فقط پیش‌نویس می‌سازد (عمدی و صادقانه).
+- **تأیید کانال‌های تماس**: هندل‌ها از محتوای قبلی سایت منتقل شدند؛ owner باید واقعی‌بودنشان را تأیید کند (verified=false در `src/lib/contact.ts`).
+- **هدرهای کش / CDN**: در اختیار GitHub Pages است؛ تنظیم دستی ندارد.
+- **reduced-motion روی دستگاه واقعی** و **صف‌بندی INP** نیازمند تست فیزیکی.
+- react-refresh warnings در فایل‌های باقی‌ماندهٔ ui (button/dialog/sheet/slider) بی‌خطرند (فقط DX).
+

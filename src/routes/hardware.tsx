@@ -198,7 +198,7 @@ function UsersControl({ users, setUsers }: { users: number; setUsers: (n: number
   );
 }
 
-function SizingBody({
+export function SizingBody({
   m,
   users,
   setUsers,
@@ -347,7 +347,7 @@ function SizingBody({
 /* Model list — the DEFAULT view: search + category + count + empty    */
 /* ------------------------------------------------------------------ */
 
-function ModelList({
+export function ModelList({
   models,
   selId,
   onPick,

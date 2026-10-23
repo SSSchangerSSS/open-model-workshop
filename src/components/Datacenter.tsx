@@ -1,7 +1,8 @@
-import { useEffect, lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Link, ClientOnly } from "@tanstack/react-router";
 import { ArrowLeft, ChevronDown, Mail, RotateCcw, Server } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ContactTerminal } from "./ContactTerminal";
 import { HeroTerminal } from "./HeroTerminal";
 import MatrixBackdrop from "./MatrixBackdrop";
@@ -28,35 +29,6 @@ export default function Datacenter() {
   // chunk (first paint, hydration and INP stay clean). On compact devices
   // the 2D backdrop renders and the chunk is never requested.
   const idleReady = useIdleReveal() && !COMPACT;
-  useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const dialog = document.querySelector('[role="dialog"]');
-    const first = dialog?.querySelector<HTMLElement>("button,input");
-    first?.focus();
-    function key(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-      if (e.key !== "Tab" || !dialog) return;
-      const nodes = Array.from(dialog.querySelectorAll<HTMLElement>("button,input,textarea"));
-      const first = nodes[0];
-      const last = nodes.at(-1);
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first?.focus();
-      }
-    }
-    window.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = overflow;
-      window.removeEventListener("keydown", key);
-      if (previous instanceof HTMLElement) previous.focus();
-    };
-  }, [open]);
   const m = models[model];
 
   return (
@@ -89,15 +61,24 @@ export default function Datacenter() {
           <p className="font-mono text-xs text-primary" dir="ltr">
             THE MATRIX / PRIVATE AI DATA&nbsp;CENTER
           </p>
-          <h1 className="mt-4 font-black">
-            هوش برتر
-            <span className="text-primary cursor-blink" aria-hidden />
-          </h1>
-          <p className="mt-3 max-w-md text-sm md:text-base text-muted-foreground">
-            به راهروی دیتاسنتر ما خوش آمدید؛ رک‌ها را لمس کنید، فرمان بدهید، اسکرول کنید.
-            <br />
-            مدل‌های باز، سرورهای اختصاصی، اتوماسیون هوشمند — زیرساخت شما؛ هوش بی‌مرز.
+          <p className="mt-3 text-sm font-bold text-foreground/90">
+            هوش برتر — زیرساخت هوش مصنوعی و اتوماسیون
           </p>
+          <h1 className="mt-2 h1-fluid max-w-xl [text-shadow:0_0_28px_color-mix(in_oklab,var(--primary)_30%,transparent)]">
+            هوش مصنوعی و اتوماسیون، روی زیرساخت خودتان
+          </h1>
+          <p className="mt-3 max-w-md text-base leading-relaxed text-muted-foreground">
+            مدل‌های وزن‌باز، سرورهای اختصاصی و ورک‌فلوهای n8n و Flowise — دادهٔ شما از سازمان خارج
+            نمی‌شود؛ راهروی دیتاسنتر ما را اسکرول کنید و ببینید.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Button asChild className="h-12 px-6 glow">
+              <Link to="/contact">درخواست مشاوره</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-12 px-6 bg-background/60 backdrop-blur">
+              <Link to="/hardware">برآورد سخت‌افزار</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Interactive console — left side (end side in RTL) */}
@@ -121,11 +102,11 @@ export default function Datacenter() {
                 variant="outline"
                 onClick={() => setModel(model === i ? -1 : i)}
                 aria-pressed={model === i}
-                className={
+                className={`min-h-11 ${
                   model === i
                     ? "border-primary text-primary glow"
                     : "text-muted-foreground bg-background/60 backdrop-blur"
-                }
+                }`}
               >
                 <Server />
                 {m.name}
@@ -136,7 +117,7 @@ export default function Datacenter() {
               size="icon"
               title="نمای کلی"
               aria-label="نمای کلی"
-              className="bg-background/60 backdrop-blur"
+              className="min-h-11 min-w-11 bg-background/60 backdrop-blur"
               onClick={() => setModel(-1)}
             >
               <RotateCcw />
@@ -158,7 +139,11 @@ export default function Datacenter() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button className="h-11 glow" onClick={() => setOpen(true)}>
+              <Button
+                variant="ghost"
+                className="h-11 text-muted-foreground"
+                onClick={() => setOpen(true)}
+              >
                 <Mail />
                 ارتباط با متخصص
               </Button>
@@ -173,24 +158,17 @@ export default function Datacenter() {
         </div>
       </section>
 
-      {open && (
-        <div
-          className="connection-overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-label="ارتباط با متخصص"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
-          }}
-        >
-          <div>
-            <ContactTerminal
-              model={m?.name || "زیرساخت هوش مصنوعی"}
-              onClose={() => setOpen(false)}
-            />
-          </div>
-        </div>
-      )}
+      {/* contact dialog — Radix Dialog owns focus trap, Escape, scroll lock
+          and focus restore; no hand-rolled focus management here anymore */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-[560px] border-primary/30 bg-background p-0 gap-0">
+          <DialogTitle className="sr-only">ارتباط با متخصص هوش برتر</DialogTitle>
+          <DialogDescription className="sr-only">
+            انتخاب موضوع و ساخت پیش‌نویس پیام برای تیم هوش برتر
+          </DialogDescription>
+          <ContactTerminal model={m?.name || "زیرساخت هوش مصنوعی"} onClose={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -569,10 +569,10 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
             {simStep === -1 && (
               <button
                 onClick={runSim}
-                className="inline-flex items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition"
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/20 transition"
               >
                 <CirclePlay size={15} />
-                شبیه‌سازی اجرای ورک‌فلو
+                شبیه‌سازی نمایشی اجرا
               </button>
             )}
             {running && (
@@ -581,7 +581,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
                 role="status"
               >
                 <Loader2 size={15} className="animate-spin" />
-                در حال اجرا… گام {simStep + 1} از {c.steps.length}
+                شبیه‌سازی نمایشی — گام {simStep + 1} از {c.steps.length}
               </span>
             )}
             {simDone && (
@@ -664,7 +664,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               <div className="mt-4 flex items-start gap-2.5 rounded-md border border-primary/40 bg-primary/10 p-3 animate-in fade-in">
                 <span className="status-dot shrink-0 mt-1.5" />
                 <p className="text-sm leading-relaxed">
-                  <span className="font-bold text-primary">خروجی شبیه‌سازی: </span>
+                  <span className="font-bold text-primary">خروجی این الگو در پروژهٔ واقعی: </span>
                   {c.outcome}
                 </p>
               </div>
@@ -673,7 +673,7 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               <div className="mt-4 flex items-start gap-2.5 rounded-md border border-primary/25 bg-primary/5 p-3">
                 <span className="status-dot shrink-0 mt-1.5" />
                 <p className="text-sm leading-relaxed">
-                  <span className="font-bold text-primary">نتیجه: </span>
+                  <span className="font-bold text-primary">نتیجهٔ مستندشده: </span>
                   {c.outcome}
                 </p>
               </div>
@@ -701,13 +701,13 @@ function Showcase() {
         <p className="font-mono text-xs text-primary" dir="ltr">
           &gt; ls /cases --real-world --with-metrics
         </p>
-        <h1 className="mt-4 text-4xl font-black">
-          نمونه‌کارهای <span className="text-gradient">واقعی</span> n8n و Flowise
+        <h1 className="mt-4 h1-fluid">
+          نمونه‌کارهای <span className="text-gradient">مستند</span> n8n و Flowise
         </h1>
         <p className="mt-4 max-w-2xl leading-relaxed text-muted-foreground">
-          شانزده نیاز واقعی کسب‌وکارها که با اتوماسیون n8n و ایجنت‌های Flowise حل شده‌اند؛ نام
-          مشتری‌ها محرمانه است اما معماری، اعداد و نتایج واقعی‌اند. روی «شبیه‌سازی اجرا» بزنید تا
-          ورک‌فلو مرحله‌به‌مرحله جلوی چشم شما اجرا شود.
+          شانزده الگوی استقرار مستندشده با n8n و ایجنت‌های Flowise؛ نام مشتری‌ها محرمانه است و اعداد
+          هر کارت متعلق به همان پروژه است. روی «شبیه‌سازی نمایشی» بزنید تا معماری هر ورک‌فلو
+          مرحله‌به‌مرحله به‌صورت آموزشی اجرا شود.
         </p>
 
         {/* stack filter */}

@@ -112,13 +112,14 @@ function Index() {
       <CorridorGate />
 
       <div className="relative z-10">
-        {/* MARQUEE */}
+        {/* MARQUEE — desktop ticker; on phones a calm wrapped chip cloud */}
         <section
           className="border-y border-primary/20 bg-background/55 backdrop-blur-md py-6 overflow-hidden"
           dir="ltr"
+          aria-label="ابزارها و فناوری‌ها"
         >
           <div className="marquee-mask">
-            <div className="flex w-max animate-marquee gap-12 font-mono text-xl text-muted-foreground">
+            <div className="marquee-track flex w-max animate-marquee gap-12 font-mono text-lg md:text-xl text-muted-foreground">
               {[...tools, ...tools].map((t, i) => (
                 <span
                   key={i}
@@ -171,10 +172,11 @@ function Index() {
               &gt; diff --before --after
             </p>
             <h2 className="mt-3 text-3xl md:text-5xl font-black text-center">
-              دستگیره را بکشید؛ <span className="text-gradient">تفاوت را ببینید</span>
+              روزِ کار دستی، <span className="text-gradient">در برابر روزِ اتوماسیون</span>
             </h2>
             <p className="mt-3 text-center text-muted-foreground max-w-xl mx-auto">
-              یک نمای ساده از روزهای کار دستی در برابر روزهای اتوماسیون‌شده با هوش برتر.
+              یک نمای ساده از روزهای کار دستی در برابر روزهای اتوماسیون‌شده با هوش برتر. روی موبایل
+              هر دو فهرست پشت‌سرهم خوانده می‌شوند؛ روی دسکتاپ دستگیره را بکشید.
             </p>
           </Reveal>
           <Reveal delay={120} className="mt-10">
@@ -346,11 +348,9 @@ function Bento({
   );
 }
 
-/** Manual vs automated — drag the divider and watch the day transform.
- *  RTL-correct: «قبل» (BEFORE) lives on the RIGHT half, «بعد» (AFTER) on the
- *  LEFT half. Each side's content is anchored inside its own fixed half, on a
- *  fully opaque panel, so nothing bleeds through the other layer and nothing
- *  gets hidden under the divider while dragging. */
+/** Manual vs automated — DESKTOP: drag the divider. MOBILE: both lists are
+ *  simply stacked and fully readable without any drag gesture; the drag
+ *  slider stays as a desktop enhancement. */
 function CompareSlider() {
   const [pos, setPos] = useState(50);
   const wrap = useRef<HTMLDivElement>(null);
@@ -365,59 +365,144 @@ function CompareSlider() {
   };
 
   return (
-    <div
-      ref={wrap}
-      dir="ltr"
-      className="compare-wrap rack-card relative h-[520px] md:h-[380px] cursor-ew-resize"
-      onPointerDown={(e) => {
-        dragging.current = true;
-        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-        setFromX(e.clientX);
-      }}
-      onPointerMove={(e) => dragging.current && setFromX(e.clientX)}
-      onPointerUp={() => (dragging.current = false)}
-      onPointerCancel={() => (dragging.current = false)}
-    >
-      {/* BASE — BEFORE (قبل): manual work, opaque, anchored in the RIGHT half */}
-      <CompareSide
-        tone="manual"
-        title="فرایند دستی"
-        sub="BEFORE"
-        rows={compareManual}
-        side="right"
-      />
-
-      {/* TOP — AFTER (بعد): automated, opaque, revealed to the LEFT of the divider */}
-      <div className="compare-side" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-        <CompareSide
-          tone="auto"
-          title="با اتوماسیون هوش برتر"
-          sub="AFTER"
-          rows={compareAuto}
-          side="left"
-        />
+    <>
+      {/* mobile: stacked, no gesture required */}
+      <div className="md:hidden grid gap-4" dir="rtl">
+        <CompareList tone="manual" title="فرایند دستی" sub="BEFORE" rows={compareManual} />
+        <CompareList tone="auto" title="با اتوماسیون هوش برتر" sub="AFTER" rows={compareAuto} />
       </div>
 
-      {/* divider + knob */}
-      <div className="compare-divider pointer-events-none" style={{ left: `${pos}%` }} />
-      <button
-        type="button"
-        role="slider"
-        aria-label="جابه‌جایی مقایسهٔ قبل و بعد"
-        aria-valuemin={12}
-        aria-valuemax={88}
-        aria-valuenow={Math.round(pos)}
-        className="compare-knob h-11 w-11 grid place-items-center text-primary"
-        style={{ left: `${pos}%`, touchAction: "none" }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setPos((p) => Math.max(12, p - 4));
-          if (e.key === "ArrowRight") setPos((p) => Math.min(88, p + 4));
-          if (e.key === "Home") setPos(12);
-          if (e.key === "End") setPos(88);
+      {/* desktop: interactive before/after slider */}
+      <div
+        ref={wrap}
+        dir="ltr"
+        className="compare-wrap rack-card relative h-[520px] hidden md:block cursor-ew-resize"
+        onPointerDown={(e) => {
+          dragging.current = true;
+          (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+          setFromX(e.clientX);
         }}
+        onPointerMove={(e) => dragging.current && setFromX(e.clientX)}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
       >
-        <MoveHorizontal size={20} />
-      </button>
+        {/* BASE — BEFORE (قبل): manual work, opaque, anchored in the RIGHT half */}
+        <CompareSide
+          tone="manual"
+          title="فرایند دستی"
+          sub="BEFORE"
+          rows={compareManual}
+          side="right"
+        />
+
+        {/* TOP — AFTER (بعد): automated, opaque, revealed to the LEFT of the divider */}
+        <div className="compare-side" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+          <CompareSide
+            tone="auto"
+            title="با اتوماسیون هوش برتر"
+            sub="AFTER"
+            rows={compareAuto}
+            side="left"
+          />
+        </div>
+
+        {/* divider + knob */}
+        <div className="compare-divider pointer-events-none" style={{ left: `${pos}%` }} />
+        <button
+          type="button"
+          role="slider"
+          aria-label="جابه‌جایی مقایسهٔ قبل و بعد"
+          aria-valuemin={12}
+          aria-valuemax={88}
+          aria-valuenow={Math.round(pos)}
+          className="compare-knob h-11 w-11 grid place-items-center text-primary"
+          style={{ left: `${pos}%`, touchAction: "none" }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowLeft") setPos((p) => Math.max(12, p - 4));
+            if (e.key === "ArrowRight") setPos((p) => Math.min(88, p + 4));
+            if (e.key === "Home") setPos(12);
+            if (e.key === "End") setPos(88);
+          }}
+        >
+          <MoveHorizontal size={20} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+/** Stacked mobile list variant of one compare side. */
+function CompareList({
+  tone,
+  title,
+  sub,
+  rows,
+}: {
+  tone: "manual" | "auto";
+  title: string;
+  sub: string;
+  rows: string[][];
+}) {
+  const auto = tone === "auto";
+  return (
+    <div className={`rack-card p-5 ${auto ? "compare-auto-bg" : "compare-manual-bg"}`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="flex items-center gap-2">
+            <span
+              className={`inline-block rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                auto ? "bg-primary/25 text-primary" : "bg-muted/40 text-muted-foreground"
+              }`}
+            >
+              {auto ? "بعد" : "قبل"}
+            </span>
+            <span className="font-mono text-[10px] tracking-widest text-muted-foreground" dir="ltr">
+              {sub}
+            </span>
+          </p>
+          <h3 className={`mt-1 text-lg font-black ${auto ? "text-primary" : "text-foreground/80"}`}>
+            {title}
+          </h3>
+        </div>
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${auto ? "status-dot" : "bg-muted-foreground/40"}`}
+          aria-hidden
+        />
+      </div>
+      <div className="mt-4 grid gap-2">
+        {rows.map(([t, d], i) => (
+          <div
+            key={i}
+            className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 ${
+              auto ? "border-primary/35 bg-primary/10" : "border-border/70 bg-muted/20"
+            }`}
+          >
+            <span
+              className={`shrink-0 grid place-items-center h-6 w-6 rounded-full border ${
+                auto ? "border-primary/60 text-primary" : "border-border text-muted-foreground"
+              }`}
+            >
+              {auto ? <Check size={13} /> : <X size={13} />}
+            </span>
+            <div className="min-w-0">
+              <p
+                className={`text-sm font-bold leading-snug ${
+                  auto ? "" : "line-through decoration-muted-foreground/50"
+                }`}
+              >
+                {t}
+              </p>
+              <p
+                className={`text-[11px] mt-0.5 leading-snug ${
+                  auto ? "text-primary/85" : "text-muted-foreground"
+                }`}
+              >
+                {d}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

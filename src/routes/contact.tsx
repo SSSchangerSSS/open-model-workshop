@@ -146,7 +146,7 @@ function ChannelCard({ c }: { c: ChannelCardProps }) {
             className="block min-h-6 font-mono text-sm font-bold text-foreground underline-offset-4 hover:text-primary hover:underline"
             aria-label={`${c.actionFa} — ${c.value}`}
           >
-            <bdi dir="rtl" className="truncate">
+            <bdi dir="auto" className="truncate">
               {c.value}
             </bdi>
           </a>

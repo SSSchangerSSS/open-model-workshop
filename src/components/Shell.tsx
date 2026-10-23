@@ -1,7 +1,14 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Intro } from "./Intro";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const nav = [
   { to: "/", label: "خانه" },
@@ -14,35 +21,40 @@ const nav = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  // lock scroll + close on Escape while the mobile drawer is open
+  // close the mobile menu on navigation
   useEffect(() => {
-    if (!menuOpen) return;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
-    window.addEventListener("keydown", key);
-    return () => {
-      document.body.style.overflow = overflow;
-      window.removeEventListener("keydown", key);
-    };
-  }, [menuOpen]);
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // and when the viewport grows to desktop (no stranded overlay / scroll lock)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const onChange = () => mq.matches && setMenuOpen(false);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   return (
     <div dir="rtl" className="min-h-screen flex flex-col">
-      {/* Global CRT overlays */}
-      <div className="crt-scanlines" aria-hidden />
-      <div className="crt-vignette" aria-hidden />
+      {/* keyboard users can jump straight to the content */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:right-2 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-primary-foreground"
+      >
+        پرش به محتوای اصلی
+      </a>
 
       <header className="border-b border-primary/25 bg-background/75 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-14 md:h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="font-mono text-primary font-bold shrink-0 text-sm md:text-base">
+          <Link to="/" className="font-brand text-primary font-bold shrink-0 text-sm md:text-base">
             &gt; هوش برتر_
             <span className="cursor-blink" aria-hidden />
           </Link>
 
           {/* desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm">
+          <nav aria-label="ناوبری اصلی" className="hidden md:flex items-center gap-6 text-sm">
             {nav.map((n) => (
               <Link
                 key={n.to}
@@ -73,65 +85,60 @@ export function Shell({ children }: { children: ReactNode }) {
             </span>
           </div>
 
-          {/* mobile hamburger */}
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label="باز کردن منو"
-            aria-expanded={menuOpen}
-            className="md:hidden grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary bg-background/60"
-          >
-            <Menu size={20} />
-          </button>
+          {/* mobile menu — a real accessible dialog (Radix): focus trap, Escape,
+              focus restore and scroll lock with cleanup are built in */}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger
+              aria-controls="mobile-menu"
+              className="md:hidden grid place-items-center h-11 w-11 rounded-md border border-primary/40 text-primary bg-background/60"
+            >
+              <Menu size={20} />
+              <span className="sr-only">باز کردن منو</span>
+            </SheetTrigger>
+            <SheetContent
+              id="mobile-menu"
+              side="right"
+              className="md:hidden w-[80%] max-w-xs border-s border-primary/30 bg-background/95 backdrop-blur-md p-6 flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <SheetTitle className="font-brand text-primary font-bold text-sm" dir="ltr">
+                  &gt; menu_
+                </SheetTitle>
+              </div>
+              <SheetDescription className="sr-only">
+                منوی ناوبری اصلی سایت هوش برتر
+              </SheetDescription>
+              <nav aria-label="ناوبری موبایل" className="flex flex-col gap-1">
+                {nav.map((n, i) => (
+                  <Link
+                    key={n.to}
+                    to={n.to}
+                    className="flex min-h-12 items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3 text-base font-bold text-foreground hover:text-primary hover:border-primary/50 active:bg-primary/15 transition"
+                    activeProps={{ className: "border-primary/60 text-primary bg-primary/15" }}
+                    activeOptions={{ exact: true }}
+                  >
+                    <span className="font-mono text-[10px] text-primary/60" dir="ltr">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {n.label}
+                  </Link>
+                ))}
+              </nav>
+              <div className="mt-auto pt-6 flex items-center gap-2 font-mono text-[11px]" dir="ltr">
+                <span className="flex items-center gap-1.5 text-primary">
+                  <span className="status-dot" />
+                  SYS.ONLINE
+                </span>
+                <span className="text-muted-foreground">UPTIME 99.98% · demo</span>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
-      {/* mobile drawer */}
-      {menuOpen && (
-        <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
-          <div
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
-            onClick={() => setMenuOpen(false)}
-          />
-          <nav className="absolute inset-y-0 right-0 w-[78%] max-w-xs border-s border-primary/30 bg-background/95 backdrop-blur-md p-6 flex flex-col gap-1 shadow-[0_0_60px_rgba(0,0,0,0.7)]">
-            <div className="flex items-center justify-between mb-6">
-              <span className="font-mono text-primary font-bold text-sm" dir="ltr">
-                &gt; menu_
-              </span>
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="بستن منو"
-                className="grid place-items-center h-10 w-10 rounded-md border border-primary/40 text-primary"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            {nav.map((n, i) => (
-              <Link
-                key={n.to}
-                to={n.to}
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-3 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3.5 text-base font-bold text-foreground hover:text-primary hover:border-primary/50 active:bg-primary/15 transition"
-              >
-                <span className="font-mono text-[10px] text-primary/60" dir="ltr">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {n.label}
-              </Link>
-            ))}
-            <div className="mt-auto pt-6 flex items-center gap-2 font-mono text-[11px]" dir="ltr">
-              <span className="flex items-center gap-1.5 text-primary">
-                <span className="status-dot" />
-                SYS.ONLINE
-              </span>
-              <span className="text-muted-foreground">UPTIME 99.98%</span>
-            </div>
-          </nav>
-        </div>
-      )}
-
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">
+        {children}
+      </main>
 
       <footer className="relative z-10 border-t border-primary/25 bg-background/80 backdrop-blur-md py-6 text-center text-sm text-muted-foreground font-mono px-4">
         <p dir="ltr" className="text-[11px] text-primary/70 mb-1" title="عنصر نمایشی صحنه">
@@ -158,6 +165,7 @@ export const services = [
     ],
     tools: ["n8n", "REST API", "Postgres", "Telegram Bot", "Webhook"],
     eta: "۱ تا ۳ هفته",
+    outcome: "حذف کار دستی تکراری و گزارش‌گیری خودکار از همهٔ اجراها",
     goals: ["repetitive", "chatbot"],
   },
   {
@@ -172,6 +180,7 @@ export const services = [
     ],
     tools: ["Flowise", "LangChain", "Qdrant", "vLLM", "Chat Widget"],
     eta: "۲ تا ۴ هفته",
+    outcome: "پاسخ فوری و مستند به مشتری و همکار، ۲۴ ساعته و با ذکر منبع",
     goals: ["chatbot", "repetitive"],
   },
   {
@@ -186,6 +195,7 @@ export const services = [
     ],
     tools: ["Docker", "vLLM", "Ollama", "Prometheus", "Grafana"],
     eta: "۳ تا ۷ روز",
+    outcome: "سرور آماده بهره‌برداری با مانیتورینگ و بکاپ — بدون وابستگی به سرویس بیرونی",
     goals: ["server", "hardware"],
   },
   {
@@ -200,6 +210,7 @@ export const services = [
     ],
     tools: ["RTX 4090/5090", "L40S", "A100/H100", "NVMe RAID", "InfiniBand"],
     eta: "۵ تا ۱۴ روز",
+    outcome: "سیستم GPU تست‌شده با عدد واقعی tok/s برای بار کاری خودتان",
     goals: ["hardware"],
   },
   {
@@ -214,6 +225,7 @@ export const services = [
     ],
     tools: ["Qwen", "Llama", "DeepSeek", "Kimi", "GLM"],
     eta: "۲ تا ۵ روز",
+    outcome: "مدل مناسب دادهٔ شما، فارسی‌سنجی‌شده و پشت یک API استاندارد",
     goals: ["chatbot", "server"],
   },
   {
@@ -221,13 +233,14 @@ export const services = [
     title: "پشتیبانی و بهینه‌سازی",
     desc: "کوانتیزه‌سازی، بهینه‌سازی سرعت، امنیت داده و پشتیبانی مستمر.",
     features: [
-      "پایش لحظه‌ای tok/s، VRAM و صف درخواست",
+      "پایش tok/s، VRAM و صف درخواست",
       "بهینه‌سازی batching و کوانتیزه‌سازی مجدد",
       "به‌روزرسانی امنیتی و patch مدیریت‌شده",
       "SLA پاسخ‌گویی با کانال تلگرام اختصاصی",
     ],
     tools: ["Grafana", "Loki", "Fail2ban", "Backrest"],
     eta: "قرارداد ماهانه",
+    outcome: "کارکرد پایدار و سریع مدل‌ها با پاسخ‌گویی SLAدار",
     goals: ["server", "support"],
   },
 ] as const;

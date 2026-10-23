@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Mail, Terminal, TriangleAlert, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CONTACT_CHANNELS } from "@/lib/contact";
+import { CONTACT_CHANNELS, loadHardwareInquiry } from "@/lib/contact";
 
 const SUBJECTS = [
   "اتوماسیون n8n / Flowise",
@@ -25,16 +25,26 @@ export function ContactTerminal({
   model?: string;
   onClose?: () => void;
 }) {
+  // a saved hardware inquiry (from /hardware) prefills the draft — non-sensitive data only
+  const [hw] = useState(() => loadHardwareInquiry());
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [subject, setSubject] = useState<string>(model);
+  const [message, setMessage] = useState(() =>
+    hw
+      ? `از صفحهٔ برآورد سخت‌افزار می‌آیم:\nمدل: ${hw.modelFa} (${hw.modelEn})\nکاربران همزمان: ${hw.users}\nسخت‌افزار برآوردی: ${hw.gpus}\nبودجهٔ سخت‌افزار برآوردی: $${hw.priceTotalUsd.toLocaleString("en-US")}\n\n`
+      : "",
+  );
+  const [subject, setSubject] = useState<string>(hw ? "سخت‌افزار GPU" : model);
   const [logStep, setLogStep] = useState(-1);
   const timer = useRef<number | null>(null);
 
-  useEffect(() => setSubject(model), [model]);
+  // an explicit `model` prop (3D corridor dialog) wins, but never over a
+  // saved hardware inquiry prefill
+  useEffect(() => {
+    if (!hw) setSubject(model);
+  }, [model, hw]);
   useEffect(
     () => () => {
       if (timer.current) window.clearInterval(timer.current);

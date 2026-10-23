@@ -55,6 +55,7 @@ function ServiceCard({
   matched: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const detailsId = `service-details-${s.tag}`;
   return (
     <Reveal delay={i * 80} className="h-full">
       <Tilt max={6} className="h-full">
@@ -77,16 +78,6 @@ function ServiceCard({
                 MATCH
               </span>
             )}
-            <span className="ms-auto flex gap-1">
-              {Array.from({ length: 8 }).map((_, j) => (
-                <span
-                  key={j}
-                  className={`h-1 w-1 rounded-full transition-colors ${
-                    j % 3 === 0 ? "bg-primary" : "bg-primary/30"
-                  } group-hover:bg-primary/70`}
-                />
-              ))}
-            </span>
           </div>
 
           <span className="font-mono text-xs text-accent" dir="ltr">
@@ -97,11 +88,21 @@ function ServiceCard({
           </h3>
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.desc}</p>
 
-          {/* expandable detail — features, tools, ETA */}
+          {/* نتیجهٔ خدمت — what you actually get out of it */}
+          <p className="mt-3 flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs leading-relaxed">
+            <Check size={13} className="mt-0.5 shrink-0 text-primary" />
+            <span>
+              <b className="text-primary">نتیجه: </b>
+              {s.outcome}
+            </span>
+          </p>
+
+          {/* expandable detail — accessible disclosure with aria wiring */}
           <button
             onClick={() => setOpen((o) => !o)}
-            className="mt-4 flex items-center gap-2 text-sm font-bold text-primary/90 hover:text-primary transition"
             aria-expanded={open}
+            aria-controls={detailsId}
+            className="mt-4 flex min-h-11 items-center gap-2 text-sm font-bold text-primary/90 hover:text-primary transition"
           >
             {open ? "بستن جزئیات" : "چه چیزی تحویل می‌گیرید؟"}
             <ChevronDown
@@ -110,6 +111,9 @@ function ServiceCard({
             />
           </button>
           <div
+            id={detailsId}
+            role="region"
+            aria-label={`جزئیات ${s.title}`}
             className="grid transition-[grid-template-rows] duration-400 ease-out"
             style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
           >
@@ -141,22 +145,21 @@ function ServiceCard({
             </div>
           </div>
 
-          {/* footer: status + live load meter */}
+          {/* footer: honest delivery info + the NEXT ACTION (no fake SLA/status
+              meters, no perpetual load animation) */}
           <div className="mt-auto pt-5">
-            <div
-              className="font-mono text-[10px] text-muted-foreground border-t border-primary/15 pt-3 space-y-2"
-              dir="ltr"
-            >
-              <div className="flex items-center justify-between">
-                <span>
-                  STATUS: <span className="text-primary">AVAILABLE</span> · SLA: 99.9%
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Wrench size={10} className="text-accent" />
-                  {s.eta}
-                </span>
-              </div>
-              <div className="meter-bar" aria-hidden />
+            <div className="flex items-center justify-between gap-3 border-t border-primary/15 pt-4">
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Wrench size={12} className="text-accent" />
+                تحویل: <b className="text-foreground">{s.eta}</b>
+              </p>
+              <Link
+                to="/contact"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-primary/40 px-3 text-xs font-bold text-primary hover:bg-primary/10 transition"
+              >
+                درخواست این خدمت
+                <ArrowLeft size={13} />
+              </Link>
             </div>
           </div>
         </article>
@@ -191,12 +194,12 @@ function Services() {
         <p className="font-mono text-xs text-primary" dir="ltr">
           &gt; cd /showroom && ./list-services --verbose
         </p>
-        <h1 className="mt-4 text-4xl font-black">
+        <h1 className="mt-4 h1-fluid">
           شوروم <span className="text-gradient">خدمات</span>
         </h1>
-        <p className="mt-3 max-w-xl text-muted-foreground leading-relaxed">
+        <p className="mt-3 max-w-xl text-base text-muted-foreground leading-relaxed">
           در راهروی دیتاسنتر قدم بزنید و ماژول موردنظرتان را بردارید؛ هر ماژول قابل باز شدن است —
-          لیست تحویلی‌ها، ابزارها و زمان تحویل را قبل از صحبت ببینید.
+          نتیجه، لیست تحویلی‌ها، ابزارها و زمان تحویل را قبل از صحبت ببینید.
         </p>
 
         {/* هدف‌یاب — هدف را انتخاب کنید، ماژول‌های مرتبط روشن می‌شوند */}
@@ -260,18 +263,19 @@ function Services() {
           })}
         </div>
 
-        {/* امار زنده شوروم */}
+        {/* امار قابل راستی‌آزمایی از دادهٔ همین سایت (نه ادعای کسب‌وکار) */}
         <Reveal delay={120}>
           <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              ["۴۰+", "ورک‌فلوی فعال"],
-              ["۶۱", "مدل آماده استقرار"],
-              ["۹۹٫۹٪", "آپ‌تایم تضمینی"],
-              ["< ۲ ساعت", "پاسخ پشتیبانی"],
-            ].map(([v, l]) => (
+              ["۶۱", "مدل وزن‌باز آمادهٔ استقرار", "کهکشان مدل‌های سایت"],
+              ["۹", "دستهٔ کاربردی مدل‌ها", "از چت و ایجنت تا تصویر و صدا"],
+              ["۶", "ماژول خدمت", "از اتوماسیون تا پشتیبانی"],
+              ["< ۲ ساعت", "هدف پاسخ پشتیبانی", "تعهد SLA در قرارداد"],
+            ].map(([v, l, src]) => (
               <div key={l} className="lift rack-card px-4 py-5 text-center">
                 <div className="text-2xl font-black text-primary">{v}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{l}</div>
+                <div className="mt-1 font-mono text-[9px] text-muted-foreground/60">{src}</div>
               </div>
             ))}
           </div>

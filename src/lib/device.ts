@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * Device tier detection — SSR-safe.
  * "Compact" = small viewport OR weak hardware (few cores / low memory).
@@ -29,4 +31,36 @@ export function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
+}
+
+/** The viewport breakpoint that matches isCompactDevice()'s width check. */
+export const COMPACT_QUERY = "(max-width: 767px)";
+
+/**
+ * Reactive, SSR-safe media-query hook.
+ * Server AND first client render return `initial`, so the markup never
+ * mismatches; the real value is applied right after mount and again on
+ * every change (live resize without reload). Consumers whose target UI
+ * only appears after user interaction (e.g. a modal opened by a click)
+ * can rely on the post-mount value being correct by interaction time.
+ */
+export function useMediaQuery(query: string, initial = false): boolean {
+  const [matches, setMatches] = useState(initial);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [query]);
+  return matches;
+}
+
+/**
+ * LIVE compact-viewport flag (<= 767px) — unlike isCompactDevice() this
+ * keeps listening across resizes, so a bottom Sheet is mounted only on a
+ * genuinely mobile viewport and a desktop panel takes over on wide ones.
+ */
+export function useCompactViewport(): boolean {
+  return useMediaQuery(COMPACT_QUERY);
 }

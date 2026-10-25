@@ -5,7 +5,7 @@ import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { isCompactDevice } from "@/lib/device";
+import { isCompactDevice, useCompactViewport } from "@/lib/device";
 import { useIdleReveal } from "@/lib/use-idle-reveal";
 import { saveHardwareInquiry } from "@/lib/contact";
 import { SceneBoundary, SceneFailedNote } from "@/components/SceneBoundary";
@@ -435,6 +435,12 @@ function HardwarePage() {
   const [mode, setMode] = useState<ViewMode>("auto");
   const desktopIdle = useIdleReveal(1200, 1800);
   const show3d = mode === "3d" || (mode === "auto" && !COMPACT && desktopIdle);
+  // LIVE viewport flag (listens across resizes): the mobile Sheet may only
+  // mount on a genuinely compact viewport, and desktop gets a real details
+  // panel in BOTH list and 3D views. CSS-only `md:hidden` on SheetContent
+  // is NOT enough — the Radix overlay/focus-trap/scroll-lock would still
+  // go live on desktop with the panel visually hidden.
+  const isCompactViewport = useCompactViewport();
   const navigate = useNavigate();
 
   const norm = (s: string) => s.replace(/\u200c/g, " ").toLowerCase();
@@ -764,12 +770,13 @@ function HardwarePage() {
 
         <ModelList models={filtered} selId={selId} onPick={pickId} total={MODELS.length} />
 
-        {/* mobile: bottom Sheet for the selected model */}
-        {selModel && (
+        {/* mobile: bottom Sheet for the selected model — mounts ONLY on a
+            compact viewport; on desktop the fixed panel below is used */}
+        {selModel && isCompactViewport && (
           <Sheet open onOpenChange={(o) => !o && setSelId(null)}>
             <SheetContent
               side="bottom"
-              className="md:hidden h-[86svh] max-h-[86svh] overflow-y-auto panel-glass rounded-t-2xl p-5"
+              className="h-[86svh] max-h-[86svh] overflow-y-auto panel-glass rounded-t-2xl p-5"
             >
               <SheetTitle className="sr-only">
                 جزئیات و برآورد سخت‌افزار مدل {selModel.fa}
@@ -781,6 +788,20 @@ function HardwarePage() {
               <SizingBody m={selModel} users={users} setUsers={setUsers} onQuote={openQuote} />
             </SheetContent>
           </Sheet>
+        )}
+
+        {/* desktop list view: real details panel (no dark overlay, no scroll
+            lock) — same glass style as the 3D-side panel; fixed so the
+            calculator stays visible while browsing the list. Dismissible. */}
+        {selModel && !isCompactViewport && !show3d && (
+          <div
+            className="fixed z-30 end-6 top-24 bottom-6 w-[400px] max-w-[calc(100vw-2rem)] overflow-y-auto panel-glass rounded-xl p-5 shadow-2xl"
+            role="complementary"
+            aria-label="جزئیات مدل انتخاب‌شده"
+          >
+            <SidePanelHeader onClose={() => setSelId(null)} />
+            <SizingBody m={selModel} users={users} setUsers={setUsers} onQuote={openQuote} />
+          </div>
         )}
 
         <p className="mt-6 text-[11px] leading-relaxed text-muted-foreground">

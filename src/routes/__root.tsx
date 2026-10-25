@@ -11,6 +11,12 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+// Critical above-the-fold fonts, preloaded with their real hashed URLs so
+// the swap happens before first text paint instead of after (T8 — the
+// lab-measured dominant CLS cause was the Vazirmatn swap reflow).
+import vazirmatnRegularUrl from "../assets/fonts/Vazirmatn-Regular-sub.woff2?url";
+import vazirmatnBoldUrl from "../assets/fonts/Vazirmatn-Bold-sub.woff2?url";
+import vazirMatrixBoldUrl from "../assets/fonts/VazirMatrix-Bold-sub.woff2?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SITE_LOCALE, SITE_NAME, absoluteUrl } from "@/lib/site";
 import { NotFoundContent } from "@/components/NotFoundContent";
@@ -82,6 +88,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      // Exactly three preloads: the fonts the first viewport actually needs
+      // (body regular + headings bold + brand matrix). Everything else
+      // (Medium, JetBrains Mono, Vazir Matrix Regular) stays discovery-based.
+      { rel: "preload", href: vazirmatnRegularUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+      { rel: "preload", href: vazirmatnBoldUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+      { rel: "preload", href: vazirMatrixBoldUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
       // no third-party request, no render-blocking stylesheet round-trip.
       { rel: "icon", href: `${BASE}favicon.ico`, type: "image/x-icon" },

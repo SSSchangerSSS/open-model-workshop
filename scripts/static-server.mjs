@@ -10,6 +10,7 @@
  */
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
+import zlib from "node:zlib";
 import { join, normalize, extname } from "node:path";
 
 const port = Number(process.argv[2] ?? 4173);
@@ -84,10 +85,27 @@ const server = createServer(async (req, res) => {
       return;
     }
   }
+  // GitHub Pages compresses text assets (gzip/br) — the lab must measure
+  // the same transfer behavior, otherwise absolute LCP/byte numbers are
+  // inflated and useless against the numeric targets.
+  const ext = extname(file);
+  const compressible = [".html", ".js", ".css", ".svg", ".xml", ".txt", ".json"].includes(ext);
+  const acceptGzip = String(req.headers["accept-encoding"] ?? "").includes("gzip");
   const body = await readFile(file);
+  if (compressible && acceptGzip) {
+    const gz = await new Promise((resolve) => zlib.gzip(body, (_, b) => resolve(b)));
+    res.writeHead(200, {
+      "content-type": MIME[ext] ?? "application/octet-stream",
+      "content-encoding": "gzip",
+      vary: "accept-encoding",
+      "cache-control": ext === ".html" ? "no-cache" : "public, max-age=3600",
+    });
+    res.end(gz);
+    return;
+  }
   res.writeHead(200, {
-    "content-type": MIME[extname(file)] ?? "application/octet-stream",
-    "cache-control": extname(file) === ".html" ? "no-cache" : "public, max-age=3600",
+    "content-type": MIME[ext] ?? "application/octet-stream",
+    "cache-control": ext === ".html" ? "no-cache" : "public, max-age=3600",
   });
   res.end(body);
 });

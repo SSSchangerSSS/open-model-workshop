@@ -28,8 +28,12 @@ export default function Datacenter() {
   const policy = useDevicePolicy();
   const lite = policy.lite;
   // Desktop only: wait for browser idle before pulling the three.js chunk
-  // (first paint, hydration and INP stay clean).
+  // (first paint, hydration and INP stay clean). The policy gate MUST come
+  // first: an idle callback can fire before the first policy commit, and a
+  // lazy chunk download cannot be cancelled — Save-Data/compact users would
+  // receive three.js bytes they must never be sent (T4).
   const idleReady = useIdleReveal();
+  const sceneAllowed = policy.ready && !lite && idleReady;
   const m = models[model];
 
   return (
@@ -43,7 +47,7 @@ export default function Datacenter() {
         <ClientOnly fallback={<SceneFallback />} key={lite ? "lite" : "full"}>
           {lite ? (
             <MatrixBackdrop still={policy.saveData || policy.reducedMotion} />
-          ) : idleReady ? (
+          ) : sceneAllowed ? (
             <Suspense fallback={null}>
               <SceneBoundary fallback={<SceneFailedNote />}>
                 <DatacenterScene

@@ -109,6 +109,14 @@ export type DevicePolicy = {
   saveData: boolean;
   /** Anything that should downgrade visuals/bytes: compact tier or saveData. */
   lite: boolean;
+  /**
+   * False during SSR and the very first client render — the real signals
+   * (saveData/hardware/?tier) are only known after mount. Consumers MUST
+   * gate heavy/uncancellable work (e.g. lazy chunk downloads) on `ready`,
+   * otherwise an idle callback can fire between mount and the first policy
+   * commit and start downloading a chunk Save-Data users must never get.
+   */
+  ready: boolean;
 };
 
 export function useDevicePolicy(): DevicePolicy {
@@ -117,6 +125,7 @@ export function useDevicePolicy(): DevicePolicy {
   const [saveData, setSaveData] = useState(false);
   const [weakHardware, setWeakHardware] = useState(false);
   const [tierOverride, setTierOverride] = useState<"lite" | "full" | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     // hardware signals are read once per mount (they do not change at runtime)
@@ -129,6 +138,8 @@ export function useDevicePolicy(): DevicePolicy {
 
     const conn = (navigator as { connection?: NetworkWithSaveData }).connection;
     setSaveData(readSaveData());
+    // policy is now settled — heavy gates (lazy chunk downloads) may open
+    setReady(true);
     if (conn?.addEventListener && conn.removeEventListener) {
       const onChange = () => setSaveData(readSaveData());
       conn.addEventListener("change", onChange);
@@ -153,7 +164,7 @@ export function useDevicePolicy(): DevicePolicy {
         ? false
         : compactViewport || weakHardware;
 
-  return { compact, reducedMotion, saveData, lite: compact || saveData };
+  return { compact, reducedMotion, saveData, lite: compact || saveData, ready };
 }
 
 /** QA override ?tier=lite|full — null when absent. */

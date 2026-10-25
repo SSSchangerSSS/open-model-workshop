@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * Device tier detection — SSR-safe.
  * "Compact" = small viewport OR weak hardware (few cores / low memory).
@@ -29,4 +31,52 @@ export function prefersReducedMotion(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Save-Data preference, when the browser exposes it (absence = false). */
+export function wantsSaveData(): boolean {
+  if (typeof navigator === "undefined") return false;
+  try {
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    return conn?.saveData === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reactive phone-viewport flag — SSR-safe and hydration-safe.
+ * Server AND the first client render both report `false` (identical markup);
+ * the real matchMedia value is synced in an effect and kept live on resize,
+ * so components may conditionally mount/unmount (e.g. the mobile Sheet)
+ * without ever producing a hydration mismatch.
+ */
+export function usePhoneViewport(): boolean {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return; // jsdom / exotic embeds
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setPhone(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return phone;
+}
+
+/**
+ * Reactive a11y/data policy — reduced-motion and Save-Data, listened to live.
+ * Same SSR contract as usePhoneViewport: `false` until an effect can know.
+ */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReduced(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return reduced;
 }

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageMeta } from "@/lib/seo";
 import { useMemo, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
@@ -31,25 +32,16 @@ import {
 /* ------------------------------------------------------------------ */
 
 export const Route = createFileRoute("/compare")({
-  head: () => ({
-    meta: [
-      { title: "مقایسهٔ مدل‌های هوش مصنوعی | هوش برتر" },
-      {
-        name: "description",
-        content:
-          "مقایسهٔ نموداری مدل‌های وزن‌باز در هر دسته و مقایسهٔ دو‌به‌دوی متن، تصویر، ویدیو، صوت، سه‌بعدی و امبدینگ — بر پایهٔ دادهٔ Artificial Analysis و BenchLM با سنجه‌های کیفیت، سرعت، قیمت و سخت‌افزار.",
-      },
-      { property: "og:title", content: "آزمایشگاه مقایسهٔ مدل‌ها | هوش برتر" },
-      {
-        property: "og:description",
-        content:
-          "۶۱ مدل وزن‌باز را روی کیفیت، سرعت، قیمت API و سخت‌افزار لازم مقایسه کنید — نموداری و دو‌به‌دو.",
-      },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/compare" },
-    ],
-  }),
+  head: () =>
+    pageMeta({
+      title: "مقایسهٔ مدل‌های هوش مصنوعی | هوش برتر",
+      description:
+        "مقایسهٔ نموداری مدل‌های وزن‌باز در هر دسته و مقایسهٔ دو‌به‌دوی متن، تصویر، ویدیو، صوت، سه‌بعدی و امبدینگ — بر پایهٔ دادهٔ Artificial Analysis و BenchLM با سنجه‌های کیفیت، سرعت، قیمت و سخت‌افزار.",
+      ogTitle: "آزمایشگاه مقایسهٔ مدل‌ها | هوش برتر",
+      ogDescription:
+        "۶۱ مدل وزن‌باز را روی کیفیت، سرعت، قیمت API و سخت‌افزار لازم مقایسه کنید — نموداری و دو‌به‌دو.",
+      path: "compare",
+    }),
   component: ComparePage,
 });
 

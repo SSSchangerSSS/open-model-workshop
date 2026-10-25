@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { prefersReducedMotion } from "@/lib/device";
+import { prefersReducedMotion, wantsSaveData } from "@/lib/device";
 
 const GLYPHS =
   "0۱۲۳۴۵۶۷۸۹アイウエオカキクケコサシスセソタチツテトナニヌネノهاهمژهژچگآیوبپثجخدذرزسشصضطظعغفقکلمنوهی";
@@ -19,6 +19,9 @@ export default function MatrixBackdrop() {
     if (!ctx) return;
 
     const reduced = prefersReducedMotion();
+    // Save-Data clients get the same still frame — zero animation loop
+    const saveData = wantsSaveData();
+    const staticMode = reduced || saveData;
 
     let w = 0;
     let h = 0;
@@ -42,7 +45,17 @@ export default function MatrixBackdrop() {
     };
     resize();
 
-    const ro = new ResizeObserver(resize);
+    const drawStatic = () => {
+      // repaint the still frame from scratch (also used after resize)
+      ctx.fillStyle = "#020603";
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < cols; i++) for (let k = 0; k < 22; k++) drawCol(i);
+    };
+
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (staticMode) drawStatic(); // a resized still frame must not go blank
+    });
     ro.observe(canvas);
 
     const fade = () => {
@@ -81,11 +94,8 @@ export default function MatrixBackdrop() {
       hidden = document.hidden;
     };
 
-    if (reduced) {
-      // static pattern — no animation loop at all
-      ctx.fillStyle = "#020603";
-      ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < cols; i++) for (let k = 0; k < 22; k++) drawCol(i);
+    if (staticMode) {
+      drawStatic();
     } else {
       raf = requestAnimationFrame(tick);
       document.addEventListener("visibilitychange", vis);

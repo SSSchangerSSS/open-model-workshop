@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { OG_IMAGE, absoluteUrl } from "../lib/site";
 
 /**
  * Deployment root: "/" (SSR / Lovable) or "/open-model-workshop/" (GitHub
@@ -108,22 +109,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "هوش برتر" },
       { property: "og:locale", content: "fa_IR" },
+      { property: "og:url", content: absoluteUrl("") },
+      { property: "og:image", content: OG_IMAGE },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: OG_IMAGE },
       { name: "theme-color", content: "#050c07" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
       // no third-party request, no render-blocking stylesheet round-trip.
-      { rel: "icon", href: `${BASE}favicon.ico`, type: "image/x-icon" },
+      { rel: "icon", href: `${import.meta.env.BASE_URL}favicon.ico`, type: "image/x-icon" },
+      { rel: "canonical", href: absoluteUrl("") },
     ],
     scripts: [
-      {
-        // Runs BEFORE first paint: if the boot intro already played in this
-        // session, hide it instantly (no flash on repeat visits / SPA navigations).
-        children:
-          "try{if(sessionStorage.getItem('intro'))document.documentElement.classList.add('intro-done')}catch(e){}",
-      },
       {
         // Marks JS as available BEFORE first paint so `.reveal` blocks only
         // hide content when the IntersectionObserver can actually un-hide
@@ -131,16 +130,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: "document.documentElement.classList.add('js')",
       },
       {
-        // Structured data for search engines
+        // Structured data for search engines — URLs from the single site config
         type: "application/ld+json",
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
             {
               "@type": "ProfessionalService",
-              "@id": "https://ssschangersss.github.io/open-model-workshop/#org",
+              "@id": `${absoluteUrl("")}#org`,
               name: "هوش برتر",
-              url: "https://ssschangersss.github.io/open-model-workshop/",
+              url: absoluteUrl(""),
               description:
                 "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور هوش مصنوعی و بستن سخت‌افزار GPU",
               areaServed: "IR",
@@ -148,11 +147,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             },
             {
               "@type": "WebSite",
-              "@id": "https://ssschangersss.github.io/open-model-workshop/#site",
-              url: "https://ssschangersss.github.io/open-model-workshop/",
+              "@id": `${absoluteUrl("")}#site`,
+              url: absoluteUrl(""),
               name: "هوش برتر",
               inLanguage: "fa-IR",
-              publisher: { "@id": "https://ssschangersss.github.io/open-model-workshop/#org" },
+              publisher: { "@id": `${absoluteUrl("")}#org` },
             },
           ],
         }),
@@ -170,10 +169,6 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="fa" dir="rtl">
       <head>
         <HeadContent />
-        {/* No JavaScript → the boot intro must never cover the content. */}
-        <noscript>
-          <style>{`#boot-overlay{display:none !important}`}</style>
-        </noscript>
       </head>
       <body>
         {children}

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { pageMeta } from "@/lib/seo";
 import { Shell } from "@/components/Shell";
 import { ContactTerminal } from "@/components/ContactTerminal";
 import { Reveal } from "@/components/Reveal";
@@ -27,22 +28,14 @@ const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
 const COMPACT = isCompactDevice();
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "تماس | هوش برتر" },
-      {
-        name: "description",
-        content: "برای مشاوره اتوماسیون و زیرساخت هوش مصنوعی با ما تماس بگیرید.",
-      },
-      { property: "og:title", content: "تماس با هوش برتر" },
-      { property: "og:description", content: "درخواست مشاوره رایگان." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/contact" },
-    ],
-  }),
+  head: () =>
+    pageMeta({
+      title: "تماس | هوش برتر",
+      description: "برای مشاوره اتوماسیون و زیرساخت هوش مصنوعی با ما تماس بگیرید.",
+      ogTitle: "تماس با هوش برتر",
+      ogDescription: "درخواست مشاوره رایگان.",
+      path: "contact",
+    }),
   component: Contact,
 });
 

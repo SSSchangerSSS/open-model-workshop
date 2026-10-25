@@ -276,10 +276,11 @@ html {
   }
 }
 
-/* ---------- SITE ENTRY (boot intro) ---------- */
-/* Desktop-only first-visit brand moment. Mobile, short viewports,
-   reduced-motion and no-JS users go straight to the content — the overlay
-   is display:none BEFORE first paint, never a blocker. */
+/* ---------- SITE ENTRY (boot intro — user-initiated only) ---------- */
+/* The intro NEVER renders on page load: it only mounts when the user presses
+   «ورود نمایشی به دیتاسنتر» in the footer (desktop viewports only — the
+   button is hidden below lg). It unmounts itself when done. Reduced-motion
+   users get the SAME scene without any animation (static racks, no fly). */
 #boot-overlay {
   position: fixed;
   inset: 0;
@@ -290,20 +291,10 @@ html {
     opacity 0.7s ease,
     visibility 0s linear 0.7s;
 }
-html.intro-done #boot-overlay {
+html.intro-finished #boot-overlay {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-@media (max-width: 1023px) {
-  #boot-overlay {
-    display: none;
-  }
-}
-@media (max-height: 560px) {
-  #boot-overlay {
-    display: none;
-  }
 }
 .boot-line {
   opacity: 0;
@@ -329,8 +320,20 @@ html.intro-done #boot-overlay {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  #boot-overlay {
-    display: none;
+  /* no-motion brand moment: same content, nothing animates, no pulsing */
+  #boot-overlay .intro-fly {
+    animation: none;
+  }
+  #boot-overlay .boot-line {
+    opacity: 1;
+    animation: none;
+  }
+  #boot-overlay .boot-brand {
+    opacity: 1;
+    animation: none;
+  }
+  #boot-overlay .animate-pulse {
+    animation: none;
   }
 }
 

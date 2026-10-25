@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { Menu, MonitorPlay } from "lucide-react";
 import { Intro } from "./Intro";
 import {
   Sheet,
@@ -21,6 +21,7 @@ const nav = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [introOpen, setIntroOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // close the mobile menu on navigation
@@ -145,9 +146,21 @@ export function Shell({ children }: { children: ReactNode }) {
           DC-01 // CORRIDOR-SCENE (نمایشی) // 44 RACKS
         </p>
         © ۱۴۰۵ هوش برتر — اتوماسیون و زیرساخت هوش مصنوعی
+        <div className="mt-3">
+          {/* Optional brand moment — plays ONLY on explicit request, desktop
+              viewports only (the 2240-element scene is too heavy for phones).
+              Reduced-motion users get a static, animation-free version. */}
+          <button
+            onClick={() => setIntroOpen(true)}
+            className="hidden lg:inline-flex items-center gap-2 rounded-md border border-primary/30 px-3 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary"
+          >
+            <MonitorPlay className="h-3.5 w-3.5" />
+            ورود نمایشی به دیتاسنتر
+          </button>
+        </div>
       </footer>
 
-      <Intro />
+      {introOpen && <Intro onClose={() => setIntroOpen(false)} />}
     </div>
   );
 }

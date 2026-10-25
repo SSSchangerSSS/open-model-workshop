@@ -24,10 +24,20 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # pinned to the version the project is developed/tested with
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Quality gates (lint · typecheck · tests)
+        run: |
+          # scoped eslint: walking the repo root with bun's node_modules layout
+          # costs minutes with zero extra findings — src + configs is the
+          # complete lintable surface (same 0-error/8-warning result)
+          bunx eslint src vite.config.ts vitest.config.ts
+          bun run typecheck
+          bun run test
 
       - name: Build static site (SSG prerender)
         env:
@@ -35,8 +45,20 @@ jobs:
           PAGES_BASE_PATH: /open-model-workshop/
         run: bun run build
 
-      - name: Add 404 fallback (SPA-style routing for unknown paths)
-        run: cp .output/public/index.html .output/public/404.html
+      - name: Generate real 404 page (Persian, noindex, no home canonical)
+        run: bun scripts/build-404.mjs
+
+      - name: Verify build output (six routes + 404 + sitemap + og image)
+        run: |
+          for p in "" services hardware compare showcase contact; do
+            test -f ".output/public/$p/index.html" || { echo "missing: $p/index.html"; exit 1; }
+          done
+          test -f .output/public/404.html || { echo "missing 404.html"; exit 1; }
+          test -f .output/public/sitemap.xml || { echo "missing sitemap.xml"; exit 1; }
+          test -f .output/public/og-cover.png || { echo "missing og-cover.png"; exit 1; }
+          ! grep -qi 'rel="canonical"' .output/public/404.html
+          grep -qi 'name="robots" content="noindex"' .output/public/404.html
+          echo "build output OK"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

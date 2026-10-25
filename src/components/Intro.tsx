@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
+import { prefersReducedMotion } from "@/lib/device";
 
 /*
- * Site entry ("ورودی سایت") — a short brand moment on DESKTOP first visits.
- * It is deliberately OUT of the critical path:
+ * Site entry ("ورودی نمایشی") — a brand moment that ONLY plays when the
+ * user asks for it (footer button «ورود نمایشی به دیتاسنتر»).
  *
- * - Mobile (<= 1023px) and prefers-reduced-motion: `#boot-overlay` is
- *   display:none via CSS BEFORE first paint — no blocking intro, and the
- *   overlay markup is never interactive.
- * - No JavaScript: a <noscript> style in <head> (see __root.tsx) hides it,
- *   so the content is never covered.
- * - Repeat visits: the inline head script adds `intro-done` to <html>
- *   before first paint, so the overlay never flashes again in a session.
- * - When JS runs, the overlay is UNMOUNTED (removed from the DOM), not
- *   merely hidden — hundreds of animated elements must not stay alive.
+ * It is deliberately OUT of the critical path:
+ * - It is never rendered by the server and never mounted on page load —
+ *   the prerendered HTML of every route contains zero intro elements, and
+ *   first paint / hydration never pay for it.
+ * - No JavaScript: it simply never exists; content is never covered.
+ * - Reduced motion: the same scene plays WITHOUT animation (static racks,
+ *   no fly-through, no pulsing) and dismisses sooner.
+ * - When it finishes (or is skipped) it is UNMOUNTED, not hidden — hundreds
+ *   of decorated elements must not stay alive in the DOM.
  */
 
 const RACKS = 10;
@@ -56,39 +57,30 @@ function Rack({ side, i }: { side: "l" | "r"; i: number }) {
   );
 }
 
-export function Intro() {
+export function Intro({ onClose }: { onClose?: () => void }) {
   const [gone, setGone] = useState(false);
 
+  // Only ever mounted by an explicit user action → reading the media query
+  // at mount time is client-safe (no SSR, no hydration concerns).
+  const reduced = prefersReducedMotion();
+
   useEffect(() => {
-    // `intro-done` is added pre-paint by the inline head script on repeat
-    // visits — the overlay is already display:none via CSS, so unmount now.
-    if (document.documentElement.classList.contains("intro-done")) {
-      setGone(true);
-      return;
-    }
-    try {
-      sessionStorage.setItem("intro", "1");
-    } catch {
-      /* private mode */
-    }
-    const t1 = setTimeout(() => document.documentElement.classList.add("intro-done"), 3050);
-    // IMPORTANT: pass an explicit value — `setTimeout(setGone, …)` calls the
-    // setter with undefined and React bails out, leaving the overlay mounted.
-    const t2 = setTimeout(() => setGone(true), 3900);
+    // IMPORTANT: pass explicit values — `setTimeout(setGone, …)` would call
+    // the setter with undefined and React bails out, keeping the overlay alive.
+    const t1 = setTimeout(
+      () => document.documentElement.classList.add("intro-finished"),
+      reduced ? 900 : 3050,
+    );
+    const t2 = setTimeout(() => setGone(true), reduced ? 1200 : 3900);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, []);
+  }, [reduced]);
 
-  const skip = () => {
-    try {
-      sessionStorage.setItem("intro", "1");
-    } catch {
-      /* noop */
-    }
-    document.documentElement.classList.add("intro-done");
+  const finish = () => {
     setGone(true);
+    onClose?.();
   };
 
   if (gone) return null;
@@ -125,7 +117,7 @@ export function Intro() {
             <div
               key={i}
               className={`boot-line ${i === BOOT_LOG.length - 1 ? "mt-2 text-primary" : ""}`}
-              style={{ animationDelay: `${0.2 + i * 0.32}s` }}
+              style={{ animationDelay: reduced ? "0s" : `${0.2 + i * 0.32}s` }}
             >
               {l}
             </div>
@@ -135,15 +127,15 @@ export function Intro() {
         <p
           className="boot-line mt-3 font-mono text-[11px] text-primary/70"
           dir="ltr"
-          style={{ animationDelay: "2.1s" }}
+          style={{ animationDelay: reduced ? "0s" : "2.1s" }}
         >
           scroll = walk · hover = inspect · type = talk
         </p>
       </div>
       <button
-        onClick={skip}
+        onClick={finish}
         className="boot-line absolute bottom-8 left-8 rounded-lg border bg-card/70 px-4 py-2 text-sm text-muted-foreground hover:text-primary"
-        style={{ animationDelay: "1.2s", pointerEvents: "auto" }}
+        style={{ animationDelay: "0.4s", pointerEvents: "auto" }}
       >
         رد کردن ←
       </button>

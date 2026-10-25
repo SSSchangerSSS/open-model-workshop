@@ -1,12 +1,12 @@
 import { createFileRoute, Link, ClientOnly, useNavigate } from "@tanstack/react-router";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { pageMeta } from "@/lib/seo";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Box, List, ChevronLeft, ChevronRight, ArrowLeft, SearchX } from "lucide-react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { isCompactDevice } from "@/lib/device";
-import { useIdleReveal } from "@/lib/use-idle-reveal";
+import { isCompactDevice, usePhoneViewport } from "@/lib/device";
 import { saveHardwareInquiry } from "@/lib/contact";
 import { SceneBoundary, SceneFailedNote } from "@/components/SceneBoundary";
 import {
@@ -25,12 +25,13 @@ import {
 const GalaxyScene = lazy(() => import("@/components/GalaxyScene"));
 
 /* The three.js chunk (~950KB / ~240KB gzip) is the single heaviest asset on
-   the site. It is NEVER part of the default view: phones (and anyone who
-   chooses «فهرست») get a fully working calculator with zero WebGL bytes.
-   The galaxy boots only on desktop idle OR an explicit user opt-in. */
+   the site. It is NEVER part of the default view — on ANY device: the list
+   + calculator boots first, and the galaxy is an explicit opt-in button
+   (~250KB fetched only on click). No idle auto-insertion → no CLS risk:
+   the viewport section only ever appears in response to user input. */
 const COMPACT = isCompactDevice();
 
-type ViewMode = "auto" | "3d" | "list";
+type ViewMode = "3d" | "list";
 
 /** Pure-CSS deep-space placeholder — zero JS, zero WebGL, near-zero paint cost. */
 function GalaxyPlaceholder({ booting }: { booting?: boolean }) {
@@ -91,27 +92,16 @@ function GalaxyView(props: {
 }
 
 export const Route = createFileRoute("/hardware")({
-  head: () => ({
-    meta: [
-      { title: "کهکشان هوش | هوش برتر" },
-      {
-        name: "description",
-        content:
-          "۶۱ مدل متن‌باز در ۹ دسته — جست‌وجو، مقایسه و برآورد سخت‌افزار و هزینهٔ استقرار بر اساس کاربران همزمان؛ با نمای سه‌بعدی اختیاری.",
-      },
-      { property: "og:title", content: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر" },
-      {
-        property: "og:description",
-        content:
-          "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/hardware" },
-    ],
-  }),
+  head: () =>
+    pageMeta({
+      title: "کهکشان هوش | هوش برتر",
+      description:
+        "۶۱ مدل متن‌باز در ۹ دسته — جست‌وجو، مقایسه و برآورد سخت‌افزار و هزینهٔ استقرار بر اساس کاربران همزمان؛ با نمای سه‌بعدی اختیاری.",
+      ogTitle: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر",
+      ogDescription:
+        "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
+      path: "hardware",
+    }),
   component: HardwarePage,
 });
 
@@ -430,11 +420,24 @@ function HardwarePage() {
   const [users, setUsers] = useState(10);
   const [catFilter, setCatFilter] = useState<ModelCategory | null>(null);
   const [query, setQuery] = useState("");
-  // «auto»: desktop boots the galaxy at browser idle; phones stay on the list
-  // until they press «فعال‌کردن نمای سه‌بعدی». Explicit user choice always wins.
-  const [mode, setMode] = useState<ViewMode>("auto");
-  const desktopIdle = useIdleReveal(1200, 1800);
-  const show3d = mode === "3d" || (mode === "auto" && !COMPACT && desktopIdle);
+  // 3D is an explicit opt-in on EVERY device (desktop included): the light
+  // catalog boots instantly, no idle-timer insertion above the list — the
+  // content layout never shifts on its own. Explicit user choice only.
+  const [mode, setMode] = useState<ViewMode>("list");
+  const show3d = mode === "3d";
+  const isPhone = usePhoneViewport();
+
+  // turning the galaxy ON scrolls the new viewport into view — the jump is
+  // the user's own action, not silent content-shoving (CLS-safe)
+  const viewportRef = useRef<HTMLElement | null>(null);
+  const was3d = useRef(false);
+  useEffect(() => {
+    if (show3d && !was3d.current) {
+      viewportRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    was3d.current = show3d;
+  }, [show3d]);
+
   const navigate = useNavigate();
 
   const norm = (s: string) => s.replace(/\u200c/g, " ").toLowerCase();
@@ -488,9 +491,9 @@ function HardwarePage() {
 
   return (
     <Shell>
-      {/* ---------- 3D showroom viewport (OPTIONAL) ---------- */}
+      {/* ---------- 3D showroom viewport (OPTIONAL — user opt-in only) ---------- */}
       {show3d && (
-        <section className="hw-viewport" aria-label="نمای سه‌بعدی کهکشان مدل‌ها">
+        <section ref={viewportRef} className="hw-viewport" aria-label="نمای سه‌بعدی کهکشان مدل‌ها">
           <ClientOnly fallback={<GalaxyPlaceholder />}>
             <GalaxyView
               focusIndex={selIndex}
@@ -687,6 +690,15 @@ function HardwarePage() {
           )}
         </div>
 
+        {/* desktop: selected-model panel in LIST mode too — the mobile Sheet
+            is phone-only, so desktop list users still get details + calculator */}
+        {selModel && !show3d && (
+          <div className="mt-5 hidden md:block panel-glass rounded-xl p-5">
+            <SidePanelHeader onClose={() => setSelId(null)} />
+            <SizingBody m={selModel} users={users} setUsers={setUsers} onQuote={openQuote} />
+          </div>
+        )}
+
         {/* search + category filter */}
         <div className="mt-5 grid gap-3">
           <label className="relative block max-w-xl">
@@ -764,8 +776,11 @@ function HardwarePage() {
 
         <ModelList models={filtered} selId={selId} onPick={pickId} total={MODELS.length} />
 
-        {/* mobile: bottom Sheet for the selected model */}
-        {selModel && (
+        {/* phone-only bottom Sheet for the selected model. Gated by a live
+            viewport match (not just CSS): mounting the Radix dialog on desktop
+            opened a focus trap + scroll lock behind an md:hidden panel — an
+            invisible modal. Resize 390↔1366 cleanly unmounts/mounts it. */}
+        {selModel && isPhone && (
           <Sheet open onOpenChange={(o) => !o && setSelId(null)}>
             <SheetContent
               side="bottom"

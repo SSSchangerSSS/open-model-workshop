@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
-import { Scale, ArrowLeft, Repeat2, Info, Swords } from "lucide-react";
+import { Scale, ArrowLeft, Repeat2, Info, Swords, Trophy } from "lucide-react";
 import {
   CATEGORY_MAP,
   CATEGORIES,
@@ -67,6 +67,13 @@ const fmt = (v: number) => {
 
 /** The canonical «missing datum» label — never render a zero for absent data. */
 const MISSING_FA = "ناموجود";
+
+/* Slot colors — رنگ ثابت هر «جایگاه» (مدل اول/دوم)، نه رنگ دسته: در دوئلِ
+   دو مدلِ هم‌دسته هر دو میله رنگ دستهٔ یکسان می‌گرفتند و قابل تفکیک نبودند.
+   سبز/آبی آسمانی روی زمینهٔ تیره حداکثر تفکیک را می‌دهند و کل صفحه
+   (کارت‌ها، سلکت‌ها، اعداد، میله‌ها) با همین دو رنگ هم‌آهنگ می‌شود. */
+const COLOR_A = "#4dff88"; // مدل اول (سمت راست)
+const COLOR_B = "#38bdf8"; // مدل دوم (سمت چپ)
 
 /* ------------------------------------------------------------------ */
 /* Source badge — shown in the hero and under each chart               */
@@ -204,6 +211,11 @@ function ChartMode() {
               <div key={r.m.id} className="group flex items-center gap-3">
                 <div className="w-28 shrink-0 sm:w-44">
                   <div className="text-xs leading-5 text-white/90" title={r.m.fa}>
+                    <span
+                      className={`me-1 font-mono text-[10px] ${top ? "text-primary" : "text-white/35"}`}
+                    >
+                      {faDigits(i + 1)}.
+                    </span>
                     {r.m.fa}
                   </div>
                   <div
@@ -276,14 +288,22 @@ function ModelSelect({
   value,
   onChange,
   label,
+  slot,
 }: {
   value: string;
   onChange: (id: string) => void;
   label: string;
+  slot: string;
 }) {
   return (
     <label className="flex-1">
-      <span className="mb-1 block font-mono text-[10px] text-white/45">{label}</span>
+      <span className="mb-1 flex items-center gap-1.5 font-mono text-[10px] text-white/45">
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{ background: slot, boxShadow: `0 0 6px ${slot}` }}
+        />
+        {label}
+      </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -306,12 +326,12 @@ function ModelSelect({
 function SpecRow({ label, a, b, unit }: { label: string; a: string; b: string; unit?: string }) {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/[0.05] py-2 text-xs">
-      <div className="text-left font-mono text-white/85" dir="ltr">
+      <div className="text-left font-mono" dir="ltr" style={{ color: "rgba(77,255,136,0.92)" }}>
         {a}
         {unit ? <span className="text-white/40"> {unit}</span> : null}
       </div>
       <div className="px-2 text-center text-[10px] text-white/35">{label}</div>
-      <div className="text-right font-mono text-white/85" dir="ltr">
+      <div className="text-right font-mono" dir="ltr" style={{ color: "rgba(56,189,248,0.92)" }}>
         {b}
         {unit ? <span className="text-white/40"> {unit}</span> : null}
       </div>
@@ -327,8 +347,6 @@ function DuelBar({
   higherBetter,
   fa,
   fb,
-  colorA,
-  colorB,
 }: {
   label: string;
   va: number;
@@ -337,58 +355,88 @@ function DuelBar({
   higherBetter: boolean;
   fa: string;
   fb: string;
-  colorA: string;
-  colorB: string;
 }) {
   // all-zero / invalid pairs must not produce NaN bar widths — fall back to
   // equal halves so the row still reads as «no measurable difference»
   const max = Math.max(va, vb);
   const sane = Number.isFinite(max) && max > 0;
-  const wa = sane ? (va / max) * 100 : 50;
-  const wb = sane ? (vb / max) * 100 : 50;
+  const wa = sane ? Math.max(3, (va / max) * 100) : 50;
+  const wb = sane ? Math.max(3, (vb / max) * 100) : 50;
   const aWins = !sane || va === vb ? null : higherBetter ? va > vb : va < vb;
+  const tone = (side: "a" | "b"): "win" | "lose" | "tie" =>
+    aWins === null ? "tie" : (side === "a") === aWins ? "win" : "lose";
+
+  const Value = ({ v, side }: { v: number; side: "a" | "b" }) => {
+    const t = tone(side);
+    const color = side === "a" ? COLOR_A : COLOR_B;
+    return (
+      <span
+        className="font-mono text-[12px] leading-none"
+        dir="ltr"
+        style={{
+          color:
+            t === "win" ? color : t === "tie" ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)",
+          fontWeight: t === "win" ? 700 : 400,
+        }}
+      >
+        {fmt(v)}
+        {unit ? <span className="font-normal opacity-70"> {unit}</span> : null}
+      </span>
+    );
+  };
+
   return (
-    <div className="py-2">
-      <div className="mb-1 flex items-center justify-between text-[11px]">
-        <span
-          className={`font-mono ${aWins === true ? "text-primary" : "text-white/70"}`}
-          dir="ltr"
-        >
-          {fmt(va)}
-          {unit ? <span className="opacity-60"> {unit}</span> : null}
-          {aWins === true ? " ◂" : ""}
-        </span>
-        <span className="text-white/40">{label}</span>
-        <span
-          className={`font-mono ${aWins === false ? "text-primary" : "text-white/70"}`}
-          dir="ltr"
-        >
-          {aWins === false ? "▸ " : ""}
-          {fmt(vb)}
-          {unit ? <span className="opacity-60"> {unit}</span> : null}
-        </span>
+    <div className="py-2.5">
+      {/* ردیف عدد — A راست / B چپ (RTL)، دقیقاً همان سمتِ میله‌ها */}
+      <div className="mb-1.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[11px]">
+        <div className="flex items-center gap-1.5">
+          <Value v={va} side="a" />
+          {aWins === true && (
+            <Trophy className="h-3 w-3 shrink-0" style={{ color: COLOR_A }} aria-label="برنده" />
+          )}
+        </div>
+        <div className="px-1 text-center text-[10px] text-white/45">
+          {label}
+          {!higherBetter && (
+            <span
+              className="mr-1 whitespace-nowrap text-[9px] text-white/35"
+              title="برای این سنجه عدد کمتر بهتر است"
+            >
+              · کمتر بهتر
+            </span>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-1.5">
+          {aWins === false && (
+            <Trophy className="h-3 w-3 shrink-0" style={{ color: COLOR_B }} aria-label="برنده" />
+          )}
+          <Value v={vb} side="b" />
+        </div>
       </div>
-      <div className="flex h-2 gap-1 overflow-hidden rounded-full">
-        <div className="flex flex-1 justify-end">
+      {/* میله‌ها — نیمهٔ راست A / نیمهٔ چپ B، با ترکِ پس‌زمینه برای قضاوت مقیاس */}
+      <div className="flex h-3 gap-1.5">
+        <div className="flex flex-1 justify-end overflow-hidden rounded-full bg-white/[0.05]">
           <div
-            className="h-full rounded-r-full transition-all duration-700"
+            className="h-full rounded-full transition-all duration-700 ease-out"
             style={{
               width: `${wa}%`,
-              background: colorA,
-              opacity: aWins === false ? 0.45 : 1,
+              background: `linear-gradient(to right, ${COLOR_A}55, ${COLOR_A})`,
+              boxShadow: aWins === true ? `0 0 10px ${COLOR_A}80` : undefined,
+              opacity: tone("a") === "lose" ? 0.3 : 1,
             }}
-            title={fa}
+            title={`${fa} — ${fmt(va)}${unit ? ` ${unit}` : ""}`}
           />
         </div>
-        <div className="flex flex-1">
+        <div className="flex flex-1 overflow-hidden rounded-full bg-white/[0.05]">
           <div
-            className="h-full rounded-l-full transition-all duration-700"
+            className="h-full rounded-full transition-all duration-700 ease-out"
             style={{
               width: `${wb}%`,
-              background: colorB,
-              opacity: aWins === true ? 0.45 : 1,
+              background: `linear-gradient(to left, ${COLOR_B}55, ${COLOR_B})`,
+              boxShadow: aWins === false ? `0 0 10px ${COLOR_B}80` : undefined,
+              opacity: tone("b") === "lose" ? 0.3 : 1,
             }}
-            title={fb}
+            title={`${fb} — ${fmt(vb)}${unit ? ` ${unit}` : ""}`}
           />
         </div>
       </div>
@@ -423,7 +471,8 @@ function DuelMode() {
   const bCat = CATEGORY_MAP[B.cat];
 
   // agentic-vs-reasoning share metric keys (real duel), text-vs-image have none
-  const hasOverlap = metricRows.some((r) => r.va !== undefined && r.vb !== undefined);
+  const overlapCount = metricRows.filter((r) => r.va !== undefined && r.vb !== undefined).length;
+  const hasOverlap = overlapCount > 0;
 
   const winsA = hasOverlap
     ? metricRows.filter(
@@ -439,7 +488,7 @@ function DuelMode() {
     <div>
       {/* pickers */}
       <div className="mb-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-        <ModelSelect value={aId} onChange={setA} label="مدل اول" />
+        <ModelSelect value={aId} onChange={setA} label="مدل اول" slot={COLOR_A} />
         <button
           onClick={() => {
             setA(bId);
@@ -450,7 +499,7 @@ function DuelMode() {
         >
           <Repeat2 className="h-4 w-4" />
         </button>
-        <ModelSelect value={bId} onChange={setB} label="مدل دوم" />
+        <ModelSelect value={bId} onChange={setB} label="مدل دوم" slot={COLOR_B} />
       </div>
 
       {/* presets */}
@@ -473,17 +522,18 @@ function DuelMode() {
         ))}
       </div>
 
-      {/* identity cards */}
+      {/* identity cards — رنگ قاب = رنگ جایگاه همان مدل در میله‌ها */}
       <div className="mb-6 grid grid-cols-2 gap-3">
         {[A, B].map((m, idx) => {
           const c = CATEGORY_MAP[m.cat];
+          const slot = idx === 0 ? COLOR_A : COLOR_B;
           return (
             <div
               key={idx}
               className="rounded-xl border p-3.5"
               style={{
-                borderColor: `${c.color}44`,
-                background: `linear-gradient(160deg, ${c.color}0d, transparent 70%)`,
+                borderColor: `${slot}45`,
+                background: `linear-gradient(160deg, ${slot}14, transparent 70%)`,
               }}
             >
               <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -493,7 +543,16 @@ function DuelMode() {
                 >
                   {c.fa}
                 </span>
-                <span className="font-mono text-[9px] text-white/30">{idx === 0 ? "A" : "B"}</span>
+                <span
+                  className="flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-mono text-[9px] font-bold"
+                  style={{ background: `${slot}1c`, color: slot }}
+                >
+                  <span
+                    className="inline-block h-1.5 w-1.5 rounded-full"
+                    style={{ background: slot, boxShadow: `0 0 6px ${slot}` }}
+                  />
+                  {idx === 0 ? "A" : "B"}
+                </span>
               </div>
               <div className="text-sm font-bold leading-6 text-white">{m.fa}</div>
               <div className="font-mono text-[10px] text-white/45" dir="ltr">
@@ -520,12 +579,13 @@ function DuelMode() {
           <Swords className="h-4 w-4 text-primary" />
           {hasOverlap ? (
             <>
-              سر‌به‌سر روی {faDigits(winsA)} سنجه —{" "}
-              {winsA * 2 >
-              metricRows.filter((r) => r.va !== undefined && r.vb !== undefined).length ? (
-                <span className="text-primary">{A.fa} جلوتر است</span>
+              سر‌به‌سر روی {faDigits(overlapCount)} سنجه —{" "}
+              {winsA * 2 > overlapCount ? (
+                <span style={{ color: COLOR_A }}>{A.fa} جلوتر است</span>
+              ) : winsA * 2 === overlapCount ? (
+                <span className="text-white/70">مساوی — هیچ‌کدام جلوتر نیست</span>
               ) : (
-                <span className="text-primary">{B.fa} جلوتر است</span>
+                <span style={{ color: COLOR_B }}>{B.fa} جلوتر است</span>
               )}
             </>
           ) : (
@@ -544,8 +604,6 @@ function DuelMode() {
                 higherBetter={r.mt.higherBetter}
                 fa={A.fa}
                 fb={B.fa}
-                colorA={aCat.color}
-                colorB={bCat.color}
               />
             );
           }
@@ -555,7 +613,11 @@ function DuelMode() {
               key={r.mt.key}
               className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-white/[0.04] py-1.5 text-[11px]"
             >
-              <span className="text-left font-mono text-white/75" dir="ltr">
+              <span
+                className="text-left font-mono"
+                dir="ltr"
+                style={{ color: "rgba(77,255,136,0.92)" }}
+              >
                 {r.va !== undefined ? (
                   <>
                     {fmt(r.va)} {r.mt.unit} ◂ {A.en}
@@ -565,7 +627,11 @@ function DuelMode() {
                 )}
               </span>
               <span className="px-2 text-center text-white/40">{r.mt.fa}</span>
-              <span className="text-right font-mono text-white/75" dir="ltr">
+              <span
+                className="text-right font-mono"
+                dir="ltr"
+                style={{ color: "rgba(56,189,248,0.92)" }}
+              >
                 {r.vb !== undefined ? (
                   <>
                     {B.en} ▸ {fmt(r.vb)} {r.mt.unit}
@@ -593,8 +659,6 @@ function DuelMode() {
           higherBetter={false}
           fa={A.fa}
           fb={B.fa}
-          colorA={aCat.color}
-          colorB={bCat.color}
         />
         <DuelBar
           label="مصرف برق ماهانه"
@@ -604,8 +668,6 @@ function DuelMode() {
           higherBetter={false}
           fa={A.fa}
           fb={B.fa}
-          colorA={aCat.color}
-          colorB={bCat.color}
         />
         <SpecRow
           label="کارت گرافیک"

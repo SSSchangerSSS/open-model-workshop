@@ -91,9 +91,27 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       // Exactly three preloads: the fonts the first viewport actually needs
       // (body regular + headings bold + brand matrix). Everything else
       // (Medium, JetBrains Mono, Vazir Matrix Regular) stays discovery-based.
-      { rel: "preload", href: vazirmatnRegularUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
-      { rel: "preload", href: vazirmatnBoldUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
-      { rel: "preload", href: vazirMatrixBoldUrl, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
+      {
+        rel: "preload",
+        href: vazirmatnRegularUrl,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        href: vazirmatnBoldUrl,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
+      {
+        rel: "preload",
+        href: vazirMatrixBoldUrl,
+        as: "font",
+        type: "font/woff2",
+        crossOrigin: "anonymous",
+      },
       // JetBrains Mono is self-hosted (latin subset) inside the bundled CSS —
       // no third-party request, no render-blocking stylesheet round-trip.
       { rel: "icon", href: `${BASE}favicon.ico`, type: "image/x-icon" },

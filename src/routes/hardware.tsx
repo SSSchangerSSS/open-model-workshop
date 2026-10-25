@@ -114,6 +114,28 @@ const catCount = (c: ModelCategory) => MODELS.filter((m) => m.cat === c).length;
 const faNum = (n: number) => faDigits(n.toLocaleString("en-US"));
 
 /* ------------------------------------------------------------------ */
+/* Derived reference data — computed ONCE per module load (T8).        */
+/* The reference table + mobile cards + card price lines used to call  */
+/* sizeFor() 366+ times on EVERY render (both markup trees always      */
+/* exist; one is CSS-hidden). These numbers are pure functions of the  */
+/* static catalog, so they are derived here once and shared.           */
+/* ------------------------------------------------------------------ */
+
+const REFERENCE = MODELS.map((m) => ({
+  m,
+  cat: CATEGORY_MAP[m.cat],
+  scenarios: [5, 25, 100].map((u) => ({ u, r: sizeFor(m, u) })),
+  at10: sizeFor(m, 10),
+}));
+const AT10 = new Map(REFERENCE.map(({ m, at10 }) => [m.id, at10]));
+
+/** Normalized search haystack per model — typing never re-normalizes 61 models. */
+const normText = (s: string) => s.replace(/\u200c/g, " ").toLowerCase();
+const SEARCH_TEXT = new Map(
+  MODELS.map((m) => [m.id, [m.fa, m.en, m.tagFa, m.useForFa].map(normText).join(" ")]),
+);
+
+/* ------------------------------------------------------------------ */
 /* Sizing panel — desktop: side panel · mobile: bottom Sheet           */
 /* ------------------------------------------------------------------ */
 
@@ -399,10 +421,10 @@ export function ModelList({
             </p>
             <p className="mt-2 flex items-center gap-2 font-mono text-[10px] text-primary/80">
               <bdi dir="ltr">
-                {faDigits(sizeFor(m, 10).gpus)}× {GPUS[m.gpu].name}
+                {faDigits((AT10.get(m.id) ?? sizeFor(m, 10)).gpus)}× {GPUS[m.gpu].name}
               </bdi>
               <span aria-hidden>·</span>
-              <bdi dir="ltr">${faNum(sizeFor(m, 10).priceTotal)} @10 users</bdi>
+              <bdi dir="ltr">${faNum((AT10.get(m.id) ?? sizeFor(m, 10)).priceTotal)} @10 users</bdi>
             </p>
           </button>
         );
@@ -410,6 +432,126 @@ export function ModelList({
     </div>
   );
 }
+
+/* ------------------------------------------------------------------ */
+/* Reference table + mobile cards — static module-level elements (T8)  */
+/* ------------------------------------------------------------------ */
+
+const REFERENCE_TABLE = (
+  /* desktop: full table — local horizontal scroll only */
+  <div className="mt-8 panel-glass rounded-xl hidden md:block overflow-x-auto">
+    <table className="w-full text-sm min-w-[820px]">
+      <thead>
+        <tr className="border-b border-primary/25 text-xs text-muted-foreground">
+          <th className="p-3.5 text-start font-bold">مدل</th>
+          <th className="p-3.5 text-start font-bold">دسته</th>
+          <th className="p-3.5 text-start font-bold">کاربرد اصلی</th>
+          <th className="p-3.5 text-start font-bold">دقت</th>
+          <th className="p-3.5 text-start font-bold">۵ کاربر</th>
+          <th className="p-3.5 text-start font-bold">۲۵ کاربر</th>
+          <th className="p-3.5 text-start font-bold">۱۰۰ کاربر</th>
+        </tr>
+      </thead>
+      <tbody>
+        {REFERENCE.map(({ m, cat, scenarios }) => (
+          <tr key={m.id} className="border-b border-border/60 hover:bg-primary/5 transition">
+            <td className="p-3.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2 w-2 rounded-full shrink-0"
+                  style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{m.fa}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground" dir="ltr">
+                      {m.params}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] text-accent/90" dir="ltr">
+                    {m.en}
+                  </span>
+                </div>
+              </div>
+            </td>
+            <td className="p-3.5 whitespace-nowrap">
+              <span
+                className="text-[11px] font-bold px-1.5 py-0.5 rounded"
+                style={{
+                  color: cat.color,
+                  border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
+                }}
+              >
+                {cat.fa}
+              </span>
+            </td>
+            <td className="p-3.5 text-xs text-muted-foreground">{m.bestForFa[0]}</td>
+            <td className="p-3.5 font-mono text-xs" dir="ltr">
+              {m.precision}
+            </td>
+            {scenarios.map(({ u, r }) => (
+              <td key={u} className="p-3.5 whitespace-nowrap">
+                <bdi dir="ltr" className="font-mono text-xs">
+                  {r.gpus}× {GPUS[m.gpu].name}
+                </bdi>
+                <bdi dir="ltr" className="block font-mono text-xs text-primary">
+                  ${r.priceTotal.toLocaleString("en-US")}
+                </bdi>
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+);
+
+const REFERENCE_CARDS = (
+  /* mobile: card list — no cramped table, no horizontal scroll */
+  <div className="mt-6 md:hidden grid gap-3">
+    {REFERENCE.map(({ m, cat, scenarios }) => (
+      <article key={m.id} className="panel-glass rounded-xl p-4 border border-border/60">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2 w-2 rounded-full shrink-0"
+            style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
+          />
+          <h3 className="font-bold text-sm">{m.fa}</h3>
+          <span className="font-mono text-[9px] text-muted-foreground" dir="ltr">
+            {m.params}
+          </span>
+          <span
+            className="ms-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
+            style={{
+              color: cat.color,
+              border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
+            }}
+          >
+            {cat.fa}
+          </span>
+        </div>
+        <p className="mt-0.5 font-mono text-[10px] text-accent/90 text-start" dir="ltr">
+          {m.en} · {m.precision}
+        </p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {scenarios.map(({ u, r }) => (
+            <div key={u} className="rounded-lg bg-muted/30 border border-border/50 p-2 text-center">
+              <p className="font-mono text-[9px] text-muted-foreground" dir="ltr">
+                {u} USERS
+              </p>
+              <bdi dir="ltr" className="block font-mono text-[11px] font-bold mt-1">
+                {r.gpus}× {GPUS[m.gpu].name}
+              </bdi>
+              <bdi dir="ltr" className="block font-mono text-[11px] text-primary mt-0.5">
+                ${r.priceTotal.toLocaleString("en-US")}
+              </bdi>
+            </div>
+          ))}
+        </div>
+      </article>
+    ))}
+  </div>
+);
 
 /* ------------------------------------------------------------------ */
 /* Page                                                                */
@@ -438,19 +580,15 @@ function HardwarePage() {
   const isCompactViewport = useCompactViewport();
   const navigate = useNavigate();
 
-  const norm = (s: string) => s.replace(/\u200c/g, " ").toLowerCase();
+  const norm = normText;
   const filtered = useMemo(() => {
     const q = norm(query.trim());
     return MODELS.filter(
       (m) =>
         (!catFilter || m.cat === catFilter) &&
-        (!q ||
-          norm(m.fa).includes(q) ||
-          norm(m.en).includes(q) ||
-          norm(m.tagFa).includes(q) ||
-          norm(m.useForFa).includes(q)),
+        (!q || (SEARCH_TEXT.get(m.id)?.includes(q) ?? false)),
     );
-  }, [catFilter, query]);
+  }, [catFilter, query, norm]);
 
   const selIndex = selId ? MODELS.findIndex((m) => m.id === selId) : -1;
   const selModel = selIndex >= 0 ? MODELS[selIndex] : null;
@@ -816,10 +954,11 @@ function HardwarePage() {
       </section>
 
       {/* ---------- reference table (SSG-rendered) ---------- */}
-      <section
-        className="cv-auto relative z-10 max-w-6xl mx-auto px-6 py-20"
-        style={{ "--cv-size": "7000px" } as React.CSSProperties}
-      >
+      {/* --cv-size comes from measured REAL heights (T8): mobile card grid
+          renders ~13.6k px, md+ table ~5.2k px — see styles.css. The old
+          fixed 7000px placeholder undershot mobile by ~6.4k px (scrollbar
+          jump). contain-intrinsic-size:auto still learns after first paint. */}
+      <section className="cv-auto cv-auto--ref relative z-10 max-w-6xl mx-auto px-6 py-20">
         <Reveal>
           <p className="font-mono text-xs text-primary" dir="ltr">
             &gt; cat sizing-table.md
@@ -833,141 +972,14 @@ function HardwarePage() {
           </p>
         </Reveal>
         <Reveal delay={120}>
-          {/* desktop: full table — local horizontal scroll only */}
-          <div className="mt-8 panel-glass rounded-xl hidden md:block overflow-x-auto">
-            <table className="w-full text-sm min-w-[820px]">
-              <thead>
-                <tr className="border-b border-primary/25 text-xs text-muted-foreground">
-                  <th className="p-3.5 text-start font-bold">مدل</th>
-                  <th className="p-3.5 text-start font-bold">دسته</th>
-                  <th className="p-3.5 text-start font-bold">کاربرد اصلی</th>
-                  <th className="p-3.5 text-start font-bold">دقت</th>
-                  <th className="p-3.5 text-start font-bold">۵ کاربر</th>
-                  <th className="p-3.5 text-start font-bold">۲۵ کاربر</th>
-                  <th className="p-3.5 text-start font-bold">۱۰۰ کاربر</th>
-                </tr>
-              </thead>
-              <tbody>
-                {MODELS.map((m) => {
-                  const cat = CATEGORY_MAP[m.cat];
-                  return (
-                    <tr
-                      key={m.id}
-                      className="border-b border-border/60 hover:bg-primary/5 transition"
-                    >
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
-                          />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold">{m.fa}</span>
-                              <span
-                                className="font-mono text-[10px] text-muted-foreground"
-                                dir="ltr"
-                              >
-                                {m.params}
-                              </span>
-                            </div>
-                            <span className="font-mono text-[10px] text-accent/90" dir="ltr">
-                              {m.en}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3.5 whitespace-nowrap">
-                        <span
-                          className="text-[11px] font-bold px-1.5 py-0.5 rounded"
-                          style={{
-                            color: cat.color,
-                            border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
-                          }}
-                        >
-                          {cat.fa}
-                        </span>
-                      </td>
-                      <td className="p-3.5 text-xs text-muted-foreground">{m.bestForFa[0]}</td>
-                      <td className="p-3.5 font-mono text-xs" dir="ltr">
-                        {m.precision}
-                      </td>
-                      {[5, 25, 100].map((u) => {
-                        const r = sizeFor(m, u);
-                        return (
-                          <td key={u} className="p-3.5 whitespace-nowrap">
-                            <bdi dir="ltr" className="font-mono text-xs">
-                              {r.gpus}× {GPUS[m.gpu].name}
-                            </bdi>
-                            <bdi dir="ltr" className="block font-mono text-xs text-primary">
-                              ${r.priceTotal.toLocaleString("en-US")}
-                            </bdi>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* mobile: card list — no cramped table, no horizontal scroll */}
-          <div className="mt-6 md:hidden grid gap-3">
-            {MODELS.map((m) => {
-              const cat = CATEGORY_MAP[m.cat];
-              return (
-                <article key={m.id} className="panel-glass rounded-xl p-4 border border-border/60">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full shrink-0"
-                      style={{ background: m.accent, boxShadow: `0 0 8px ${m.accent}` }}
-                    />
-                    <h3 className="font-bold text-sm">{m.fa}</h3>
-                    <span className="font-mono text-[9px] text-muted-foreground" dir="ltr">
-                      {m.params}
-                    </span>
-                    <span
-                      className="ms-auto text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0"
-                      style={{
-                        color: cat.color,
-                        border: `1px solid color-mix(in oklab, ${cat.color} 40%, transparent)`,
-                      }}
-                    >
-                      {cat.fa}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 font-mono text-[10px] text-accent/90 text-start" dir="ltr">
-                    {m.en} · {m.precision}
-                  </p>
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {[5, 25, 100].map((u) => {
-                      const r = sizeFor(m, u);
-                      return (
-                        <div
-                          key={u}
-                          className="rounded-lg bg-muted/30 border border-border/50 p-2 text-center"
-                        >
-                          <p className="font-mono text-[9px] text-muted-foreground" dir="ltr">
-                            {u} USERS
-                          </p>
-                          <bdi dir="ltr" className="block font-mono text-[11px] font-bold mt-1">
-                            {r.gpus}× {GPUS[m.gpu].name}
-                          </bdi>
-                          <bdi
-                            dir="ltr"
-                            className="block font-mono text-[11px] text-primary mt-0.5"
-                          >
-                            ${r.priceTotal.toLocaleString("en-US")}
-                          </bdi>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+          {/* Both markup trees are FULLY STATIC module-level elements (T8):
+              identical element references let React skip their entire
+              reconciliation on every state change (typing, selection,
+              users slider). Numbers come from the precomputed REFERENCE
+              data — zero sizeFor() calls per render. Table semantics and
+              SSR content are unchanged. */}
+          {REFERENCE_TABLE}
+          {REFERENCE_CARDS}
         </Reveal>
 
         {/* دسته‌بندی — راهنمای کوتاه دسته‌ها */}

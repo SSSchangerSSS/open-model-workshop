@@ -384,6 +384,17 @@ html {
   content-visibility: auto;
   contain-intrinsic-size: auto var(--cv-size, 720px);
 }
+/* Hardware reference section placeholder — MEASURED real heights:
+   390px card grid ≈ 13.6k px · 1440px table ≈ 5.2k px. A wrong guess here
+   makes the scrollbar/scroll-position jump when the section renders. */
+.cv-auto--ref {
+  --cv-size: 13600px;
+}
+@media (min-width: 768px) {
+  .cv-auto--ref {
+    --cv-size: 5300px;
+  }
+}
 
 /* Hardware showroom viewport (3D ring hall) */
 .hw-viewport {

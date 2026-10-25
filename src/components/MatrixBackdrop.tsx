@@ -6,10 +6,18 @@ const GLYPHS =
 
 /**
  * Lightweight 2D Matrix-rain backdrop.
- * ~2KB of JS, one canvas, capped FPS, pauses when the tab is hidden —
- * used instead of the 3D corridor on phones and low-power devices.
+ * ~2KB of JS, one canvas, capped FPS — used instead of the 3D corridor on
+ * phones and low-power devices (T4):
+ *  - `still` (Save-Data / reduced-motion): ONE static pattern is painted —
+ *    no animation loop at all — and it is REPAINTED on resize (a resized
+ *    canvas clears itself, so the old code left a blank backdrop).
+ *  - animated mode: rAF is CANCELLED while the tab is hidden and resumed
+ *    (delta reset) when it comes back — no hidden-tab work, no timer left
+ *    running after unmount.
+ *  - reduced-motion preference is re-read on change (live), so toggling it
+ *    switches between static and animated without a reload.
  */
-export default function MatrixBackdrop() {
+export default function MatrixBackdrop({ still = false }: { still?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -17,8 +25,6 @@ export default function MatrixBackdrop() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
-
-    const reduced = prefersReducedMotion();
 
     let w = 0;
     let h = 0;
@@ -40,10 +46,6 @@ export default function MatrixBackdrop() {
       speeds = Array.from({ length: cols }, () => 0.55 + Math.random() * 0.9);
       ctx.font = `${fs}px "Vazir Matrix", monospace`;
     };
-    resize();
-
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
 
     const fade = () => {
       ctx.fillStyle = "rgba(2, 6, 3, 0.16)";
@@ -63,40 +65,85 @@ export default function MatrixBackdrop() {
       drops[i] = y > h + Math.random() * 220 ? -20 : y + speeds[i]! * (fs + 3);
     };
 
+    /** one static frame — the Save-Data / reduced-motion backdrop */
+    const paintStatic = () => {
+      resize();
+      ctx.fillStyle = "#020603";
+      ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < cols; i++) for (let k = 0; k < 22; k++) drawCol(i);
+    };
+
     // ~26fps — plenty for rain, cheap on battery
     const STEP = 1000 / 26;
     let raf = 0;
     let last = performance.now();
-    let hidden = document.hidden;
+    let running = false;
 
     const tick = (t: number) => {
       raf = requestAnimationFrame(tick);
-      if (hidden || t - last < STEP) return;
+      if (t - last < STEP) return;
       last = t;
       fade();
       for (let i = 0; i < cols; i++) drawCol(i);
     };
 
-    const vis = () => {
-      hidden = document.hidden;
+    const startLoop = () => {
+      if (running) return;
+      running = true;
+      last = performance.now(); // delta reset — no burst after resume
+      raf = requestAnimationFrame(tick);
+    };
+    const stopLoop = () => {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(raf);
     };
 
-    if (reduced) {
-      // static pattern — no animation loop at all
-      ctx.fillStyle = "#020603";
-      ctx.fillRect(0, 0, w, h);
-      for (let i = 0; i < cols; i++) for (let k = 0; k < 22; k++) drawCol(i);
-    } else {
-      raf = requestAnimationFrame(tick);
-      document.addEventListener("visibilitychange", vis);
+    const reducedMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let reduced = still || prefersReducedMotion();
+
+    const ro = new ResizeObserver(() => {
+      // a resized canvas is cleared — repaint the right mode
+      if (reduced) paintStatic();
+      // animated mode keeps its loop; drop columns re-seed in resize()
+    });
+    ro.observe(canvas);
+
+    const vis = () => {
+      if (document.hidden) stopLoop();
+      else if (!reduced) startLoop();
+    };
+
+    const applyMode = () => {
+      if (reduced) {
+        stopLoop();
+        paintStatic();
+      } else {
+        startLoop();
+      }
+    };
+
+    const onReducedChange = () => {
+      reduced = still || reducedMq.matches;
+      applyMode();
+    };
+    reducedMq.addEventListener("change", onReducedChange);
+
+    if (document.hidden) {
+      // tab already hidden: paint one frame, defer the loop to visibility
+      paintStatic();
+      running = false;
     }
+    applyMode();
+    document.addEventListener("visibilitychange", vis);
 
     return () => {
-      cancelAnimationFrame(raf);
+      stopLoop();
       ro.disconnect();
+      reducedMq.removeEventListener("change", onReducedChange);
       document.removeEventListener("visibilitychange", vis);
     };
-  }, []);
+  }, [still]);
 
   return (
     <canvas

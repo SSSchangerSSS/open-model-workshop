@@ -24,10 +24,18 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Pinned to the version the round-2 work was verified with
+          # (bun.lock frozen) — do not bump casually.
+          bun-version: 1.3.14
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Quality gates (lint + typecheck + tests)
+        run: |
+          bun run lint
+          bun run typecheck
+          bun run test
 
       - name: Build static site (SSG prerender)
         env:
@@ -43,6 +51,9 @@ jobs:
           # serve the home body + home canonical.
           test -f .output/public/404/index.html || { echo "::error::404 was not prerendered"; exit 1; }
           cp .output/public/404/index.html .output/public/404.html
+
+      - name: Post-build checks (routes, 404, metadata, transfer budget)
+        run: node scripts/check-output.mjs .output/public
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

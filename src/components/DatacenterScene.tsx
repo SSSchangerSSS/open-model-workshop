@@ -12,7 +12,6 @@ import {
   RACK_PANEL_FRAG,
   type Palette,
 } from "@/lib/three-shared";
-import { isCompactDevice } from "@/lib/device";
 import { buildRacks, MODEL_LABELS, INFRA_LABELS, RACK_FA, RACK_FA_INFRA } from "@/lib/rack-layout";
 
 export { getPalette, makeLabelTexture, RACK_PANEL_VERT, RACK_PANEL_FRAG };
@@ -21,7 +20,6 @@ export { MODEL_LABELS, buildRacks, MODEL_RACK_SLOTS } from "@/lib/rack-layout";
 
 /** Bloom is desktop-only and lives in its own lazy chunk (BloomLayer). */
 const BloomLayer = lazy(() => import("./BloomLayer"));
-const COMPACT = isCompactDevice();
 
 export type SceneMode = "scroll" | "fixed";
 
@@ -497,11 +495,14 @@ export default function DatacenterScene({
   model = -1,
   onPickModel,
   onContact,
+  /** lite tier — passed by the owner (reactive policy), keeps quality budget honest */
+  lite = false,
 }: {
   mode?: SceneMode;
   model?: number;
   onPickModel?: (i: number) => void;
   onContact?: () => void;
+  lite?: boolean;
 }) {
   const [p] = useState(getPalette);
   const [reduced] = useState(
@@ -528,13 +529,26 @@ export default function DatacenterScene({
     };
   }, []);
 
+  // The corridor is a FIXED full-viewport backdrop, so an IntersectionObserver
+  // is always "intersecting" — the honest visibility signal here is the TAB
+  // (T4): stop the render loop entirely while the page is hidden, resume on
+  // return. (Per-section coverage pausing is documented as a known limit in
+  // the audit: the backdrop shows through translucent content everywhere.)
+  const [pageVisible, setPageVisible] = useState(true);
+  useEffect(() => {
+    const vis = () => setPageVisible(!document.hidden);
+    document.addEventListener("visibilitychange", vis);
+    return () => document.removeEventListener("visibilitychange", vis);
+  }, []);
+
   return (
     <Canvas
-      dpr={COMPACT ? [0.8, 1] : [1, 1.6]}
+      frameloop={pageVisible ? "always" : ("never" as const)}
+      dpr={lite ? [0.8, 1] : [1, 1.6]}
       camera={{ position: [0, 1.75, WALK_START + 4], fov: 52 }}
       gl={{
-        antialias: !COMPACT,
-        powerPreference: COMPACT ? "low-power" : "high-performance",
+        antialias: !lite,
+        powerPreference: lite ? "low-power" : "high-performance",
       }}
       style={{ position: "absolute", inset: 0 }}
     >
@@ -556,7 +570,7 @@ export default function DatacenterScene({
         />
       </Suspense>
       {/* Desktop-only bloom in a lazy chunk; mobile renders additive glow only */}
-      {!COMPACT && !reduced && (
+      {!lite && !reduced && (
         <Suspense fallback={null}>
           <BloomLayer />
         </Suspense>

@@ -1,3 +1,21 @@
+# robots.txt — open-model-workshop
+#
+# HOSTING LIMITATION (documented, see docs/performance-seo-results.md):
+# GitHub Pages publishes this project under the sub-path
+# /open-model-workshop/, but crawlers only honor a robots.txt placed at the
+# ROOT of the host (https://ssschangersss.github.io/robots.txt). This file
+# at /open-model-workshop/robots.txt governs this project's OWN URLs for
+# tools that read it, but it CANNOT control crawling of the whole host —
+# the root belongs to the account owner and may host other projects.
+# If/when a dedicated domain or root-level control is available, move a
+# copy of this file (plus the Sitemap line) to the host root.
+#
+# Note: an absent/disallowed robots.txt does NOT remove pages from search
+# results — indexing of canonical pages is governed by meta robots and the
+# canonical tags each page ships. The sitemap can also be submitted
+# directly in Search Console without root robots access.
+
+# QA/preview parameters carry no content value and must not be crawled.
 User-agent: Googlebot
 Allow: /
 
@@ -12,5 +30,7 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /*?tier=
+Disallow: /*?idle=
 
 Sitemap: https://ssschangersss.github.io/open-model-workshop/sitemap.xml

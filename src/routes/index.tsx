@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageHead } from "@/lib/seo";
 import { Shell } from "@/components/Shell";
 import { Reveal, Counter } from "@/components/Reveal";
 import { Parallax, ScrollProgress, StickySteps } from "@/components/ScrollFX";
@@ -17,24 +18,15 @@ import llm from "@/assets/llm.webp";
 const CorridorStatus = lazy(() => import("@/components/CorridorStatus"));
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "هوش برتر | اتوماسیون n8n، Flowise و سرور هوش مصنوعی" },
-      {
-        name: "description",
-        content:
-          "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور AI، بستن سخت‌افزار و راه‌اندازی مدل‌های open-weight.",
-      },
-      { property: "og:title", content: "هوش برتر | اتوماسیون و زیرساخت هوش مصنوعی" },
-      {
-        property: "og:description",
-        content: "هوش مصنوعی را روی سرور خودتان اجرا کنید و کارها را خودکار کنید.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [{ rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/" }],
-  }),
+  head: () =>
+    pageHead({
+      title: "هوش برتر | اتوماسیون n8n، Flowise و سرور هوش مصنوعی",
+      description:
+        "اتوماسیون کسب‌وکار با n8n و Flowise، استقرار سرور AI، بستن سخت‌افزار و راه‌اندازی مدل‌های open-weight.",
+      ogTitle: "هوش برتر | اتوماسیون و زیرساخت هوش مصنوعی",
+      ogDescription: "هوش مصنوعی را روی سرور خودتان اجرا کنید و کارها را خودکار کنید.",
+      path: "/",
+    }),
   component: Index,
 });
 

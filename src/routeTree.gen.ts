@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as R404RouteImport } from './routes/404'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as HardwareRouteImport } from './routes/hardware'
@@ -19,6 +20,11 @@ import { Route as ShowcaseRouteImport } from './routes/showcase'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const R404Route = R404RouteImport.update({
+  id: '/404',
+  path: '/404',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CompareRoute = CompareRouteImport.update({
@@ -49,6 +55,7 @@ const ShowcaseRoute = ShowcaseRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
@@ -57,6 +64,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
@@ -66,6 +74,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/404': typeof R404Route
   '/compare': typeof CompareRoute
   '/contact': typeof ContactRoute
   '/hardware': typeof HardwareRoute
@@ -75,12 +84,26 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/compare' | '/contact' | '/hardware' | '/services' | '/showcase'
+    | '/'
+    | '/404'
+    | '/compare'
+    | '/contact'
+    | '/hardware'
+    | '/services'
+    | '/showcase'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/compare' | '/contact' | '/hardware' | '/services' | '/showcase'
+  to:
+    | '/'
+    | '/404'
+    | '/compare'
+    | '/contact'
+    | '/hardware'
+    | '/services'
+    | '/showcase'
   id:
     | '__root__'
     | '/'
+    | '/404'
     | '/compare'
     | '/contact'
     | '/hardware'
@@ -90,6 +113,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  R404Route: typeof R404Route
   CompareRoute: typeof CompareRoute
   ContactRoute: typeof ContactRoute
   HardwareRoute: typeof HardwareRoute
@@ -104,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/404': {
+      id: '/404'
+      path: '/404'
+      fullPath: '/404'
+      preLoaderRoute: typeof R404RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compare': {
@@ -146,6 +177,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  R404Route: R404Route,
   CompareRoute: CompareRoute,
   ContactRoute: ContactRoute,
   HardwareRoute: HardwareRoute,

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageHead } from "@/lib/seo";
 import { Shell, services, SERVICE_GOALS } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { Tilt, Magnetic } from "@/components/Interactive";
@@ -15,23 +16,15 @@ const DatacenterScene = lazy(() => import("@/components/DatacenterScene"));
 const COMPACT = isCompactDevice();
 
 export const Route = createFileRoute("/services")({
-  head: () => ({
-    meta: [
-      { title: "خدمات | هوش برتر" },
-      {
-        name: "description",
-        content:
-          "اتوماسیون n8n، Flowise، استقرار سرور AI، بستن سخت‌افزار GPU و راه‌اندازی مدل‌های open-weight.",
-      },
-      { property: "og:title", content: "خدمات هوش برتر" },
-      { property: "og:description", content: "فهرست کامل خدمات اتوماسیون و زیرساخت هوش مصنوعی." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/services" },
-    ],
-  }),
+  head: () =>
+    pageHead({
+      title: "خدمات | هوش برتر",
+      description:
+        "اتوماسیون n8n، Flowise، استقرار سرور AI، بستن سخت‌افزار GPU و راه‌اندازی مدل‌های open-weight.",
+      ogTitle: "خدمات هوش برتر",
+      ogDescription: "فهرست کامل خدمات اتوماسیون و زیرساخت هوش مصنوعی.",
+      path: "/services",
+    }),
   component: Services,
 });
 

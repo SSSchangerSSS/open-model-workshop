@@ -1,12 +1,12 @@
 import { createFileRoute, Link, ClientOnly, useNavigate } from "@tanstack/react-router";
+import { pageHead } from "@/lib/seo";
 import { lazy, Suspense, useMemo, useState } from "react";
 import { Search, X, Box, List, ChevronLeft, ChevronRight, ArrowLeft, SearchX } from "lucide-react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import { isCompactDevice, useCompactViewport } from "@/lib/device";
-import { useIdleReveal } from "@/lib/use-idle-reveal";
+import { useCompactViewport } from "@/lib/device";
 import { saveHardwareInquiry } from "@/lib/contact";
 import { SceneBoundary, SceneFailedNote } from "@/components/SceneBoundary";
 import {
@@ -25,12 +25,13 @@ import {
 const GalaxyScene = lazy(() => import("@/components/GalaxyScene"));
 
 /* The three.js chunk (~950KB / ~240KB gzip) is the single heaviest asset on
-   the site. It is NEVER part of the default view: phones (and anyone who
-   chooses «فهرست») get a fully working calculator with zero WebGL bytes.
-   The galaxy boots only on desktop idle OR an explicit user opt-in. */
-const COMPACT = isCompactDevice();
+   the site. It is NEVER part of the default view on ANY device: the list +
+   calculator is the stable default everywhere and the galaxy boots ONLY on
+   an explicit user opt-in (T3 policy — deliberate change from the previous
+   desktop-idle auto boot, which inserted a full-viewport section after idle
+   and shifted the list / swapped the H1 under the user). */
 
-type ViewMode = "auto" | "3d" | "list";
+type ViewMode = "list" | "3d";
 
 /** Pure-CSS deep-space placeholder — zero JS, zero WebGL, near-zero paint cost. */
 function GalaxyPlaceholder({ booting }: { booting?: boolean }) {
@@ -91,27 +92,16 @@ function GalaxyView(props: {
 }
 
 export const Route = createFileRoute("/hardware")({
-  head: () => ({
-    meta: [
-      { title: "کهکشان هوش | هوش برتر" },
-      {
-        name: "description",
-        content:
-          "۶۱ مدل متن‌باز در ۹ دسته — جست‌وجو، مقایسه و برآورد سخت‌افزار و هزینهٔ استقرار بر اساس کاربران همزمان؛ با نمای سه‌بعدی اختیاری.",
-      },
-      { property: "og:title", content: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر" },
-      {
-        property: "og:description",
-        content:
-          "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/hardware" },
-    ],
-  }),
+  head: () =>
+    pageHead({
+      title: "کهکشان هوش | هوش برتر",
+      description:
+        "۶۱ مدل متن‌باز در ۹ دسته — جست‌وجو، مقایسه و برآورد سخت‌افزار و هزینهٔ استقرار بر اساس کاربران همزمان؛ با نمای سه‌بعدی اختیاری.",
+      ogTitle: "کهکشان هوش — سالن سه‌بعدی سخت‌افزار | هوش برتر",
+      ogDescription:
+        "محاسبهٔ زندهٔ GPU و هزینهٔ استقرار از چت و ایجنت تا تصویر، ویدیو، صدا و سه‌بعدی — بر اساس کاربران همزمان.",
+      path: "/hardware",
+    }),
   component: HardwarePage,
 });
 
@@ -432,9 +422,14 @@ function HardwarePage() {
   const [query, setQuery] = useState("");
   // «auto»: desktop boots the galaxy at browser idle; phones stay on the list
   // until they press «فعال‌کردن نمای سه‌بعدی». Explicit user choice always wins.
-  const [mode, setMode] = useState<ViewMode>("auto");
-  const desktopIdle = useIdleReveal(1200, 1800);
-  const show3d = mode === "3d" || (mode === "auto" && !COMPACT && desktopIdle);
+  const [mode, setMode] = useState<ViewMode>("list");
+  const show3d = mode === "3d";
+  // a controlled, intentional switch — land the user at the top of the view
+  // they asked for instead of a confusing mid-page jump
+  const switchMode = (next: ViewMode) => {
+    setMode(next);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  };
   // LIVE viewport flag (listens across resizes): the mobile Sheet may only
   // mount on a genuinely compact viewport, and desktop gets a real details
   // panel in BOTH list and 3D views. CSS-only `md:hidden` on SheetContent
@@ -520,9 +515,14 @@ function HardwarePage() {
                 <p className="font-mono text-xs text-primary" dir="ltr">
                   &gt; cd /galaxy/models --explore
                 </p>
-                <h1 className="mt-2 text-3xl md:text-5xl font-black [text-shadow:0_0_32px_color-mix(in_oklab,var(--primary)_45%,transparent)]">
+                {/* decorative scene title — deliberately NOT an h1: the page
+                    H1 stays the stable catalog heading below (T3/T6) */}
+                <p
+                  role="presentation"
+                  className="mt-2 text-3xl md:text-5xl font-black [text-shadow:0_0_32px_color-mix(in_oklab,var(--primary)_45%,transparent)]"
+                >
                   کهکشان هوش
-                </h1>
+                </p>
                 <p className="mt-2 max-w-xl text-sm md:text-base text-muted-foreground">
                   شصت‌ویک مدل متن‌باز در نُه کهکشان — روی ستارهٔ هر مدل کلیک کنید، کاربران همزمانتان
                   را بگویید و سخت‌افزار و قیمت دلاری را همان‌جا ببینید.
@@ -572,6 +572,15 @@ function HardwarePage() {
 
           {/* galaxy / star navigation */}
           <div className="absolute z-10 inset-x-0 bottom-24 md:bottom-5 flex justify-center items-center gap-3">
+            {/* obvious way back — the list is the default view, 3D is opt-in */}
+            <button
+              onClick={() => switchMode("list")}
+              aria-label="بازگشت به فهرست مدل‌ها"
+              className="panel-glass rounded-full px-3 py-2.5 flex items-center gap-1.5 text-primary text-xs font-bold hover:scale-105 transition"
+            >
+              <List size={14} />
+              فهرست
+            </button>
             <button
               onClick={() => cycle(1)}
               aria-label="ستارهٔ بعدی"
@@ -644,31 +653,27 @@ function HardwarePage() {
         </section>
       )}
 
-      {/* ---------- default: searchable model catalog ---------- */}
-      <section
-        className={`relative z-10 max-w-6xl mx-auto px-5 md:px-6 ${show3d ? "pt-10" : "pt-12"} pb-16`}
-      >
-        {!show3d && (
-          <>
-            <p className="font-mono text-xs text-primary" dir="ltr">
-              &gt; ls /models --catalog
-            </p>
-            <h1 className="mt-2 h1-fluid">
-              برآورد <span className="text-gradient">سخت‌افزار</span> و کهکشان مدل‌ها
-            </h1>
-            <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
-              مدل موردنظر را از فهرست پیدا کنید، کاربران همزمان را بگویید و سخت‌افزار و قیمت دلاری
-              برآوردی را ببینید. نمای سه‌بعدی کهکشان اختیاری است — بدون آن هم همهٔ محاسبه‌ها کار
-              می‌کنند.
-            </p>
-          </>
-        )}
+      {/* ---------- searchable model catalog — the STABLE default view ---------- */}
+      <section className="relative z-10 max-w-6xl mx-auto px-5 md:px-6 pt-12 pb-16">
+        {/* the page H1 + intro are STABLE — they never appear/disappear with
+            the optional 3D view, so nothing moves and exactly one H1 exists */}
+        <p className="font-mono text-xs text-primary" dir="ltr">
+          &gt; ls /models --catalog
+        </p>
+        <h1 className="mt-2 h1-fluid">
+          برآورد <span className="text-gradient">سخت‌افزار</span> و کهکشان مدل‌ها
+        </h1>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+          مدل موردنظر را از فهرست پیدا کنید، کاربران همزمان را بگویید و سخت‌افزار و قیمت دلاری
+          برآوردی را ببینید. نمای سه‌بعدی کهکشان اختیاری است — بدون آن هم همهٔ محاسبه‌ها کار
+          می‌کنند.
+        </p>
 
         {/* view switch — 3D is an opt-in, never a prerequisite */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           {show3d ? (
             <button
-              onClick={() => setMode("list")}
+              onClick={() => switchMode("list")}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-4 text-sm font-bold text-primary hover:bg-primary/20 transition"
             >
               <List size={16} />
@@ -676,7 +681,7 @@ function HardwarePage() {
             </button>
           ) : (
             <button
-              onClick={() => setMode("3d")}
+              onClick={() => switchMode("3d")}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-4 text-sm font-bold text-primary hover:bg-primary/20 transition"
             >
               <Box size={16} />

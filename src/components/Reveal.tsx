@@ -1,13 +1,21 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { prefersReducedMotion } from "@/lib/device";
 
 /**
- * Scroll-in reveal — progressive enhancement ONLY.
- * The prerendered/SSR HTML never hides content: the `reveal` class only
- * applies its opacity/transform when the <html> element carries `js`
- * (added by an inline head script before first paint). Without JavaScript
- * every Reveal block is fully visible.
+ * Scroll-in reveal — progressive enhancement ONLY, with a FAIL-OPEN contract.
+ *
+ * The prerendered/SSR HTML never hides content. The hidden pre-reveal state
+ * (`reveal-arm`) is attached by this component itself, immediately before it
+ * starts observing with IntersectionObserver — so:
+ *  - JavaScript off → no `reveal-arm`, fully visible markup.
+ *  - Entry/route chunk fails to download or execute after the inline head
+ *    script ran → this effect never runs → no `reveal-arm` → still visible.
+ *  - Any observer/startup error → we add `in` (show) instead of hiding.
+ * The page H1, CTAs and above-the-fold content must never be hidden for the
+ * effect; call sites keep that true by using Reveal for below-fold blocks.
  */
+const useClientLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
 export function Reveal({
   children,
   delay = 0,
@@ -18,26 +26,42 @@ export function Reveal({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [armed, setArmed] = useState(false);
+  useClientLayoutEffect(() => {
+    // arm (hide) synchronously BEFORE paint so there is no flash, but ONLY
+    // once this component is actually alive in a working bundle
+    setArmed(true);
+  }, []);
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
-    // IntersectionObserver missing (very old browsers / exotic embeds): show content.
-    if (typeof IntersectionObserver === "undefined") {
+    if (!el || !armed) return;
+    try {
+      // IntersectionObserver missing (very old browsers / exotic embeds): show content.
+      if (typeof IntersectionObserver === "undefined") {
+        el.classList.add("in");
+        return;
+      }
+      const io = new IntersectionObserver(
+        ([e]) => e?.isIntersecting && (el.classList.add("in"), io.disconnect()),
+        // 1% visibility instead of 15% — very tall blocks (e.g. the 61-card
+        // mobile reference grid, ~10K px) can never reach 15% of their own
+        // height inside a phone viewport, which left them invisible forever.
+        { threshold: 0.01, rootMargin: "0px 0px -8% 0px" },
+      );
+      io.observe(el);
+      return () => io.disconnect();
+    } catch {
+      // fail open — never leave content hidden because the effect broke
       el.classList.add("in");
       return;
     }
-    const io = new IntersectionObserver(
-      ([e]) => e?.isIntersecting && (el.classList.add("in"), io.disconnect()),
-      // 1% visibility instead of 15% — very tall blocks (e.g. the 61-card
-      // mobile reference grid, ~10K px) can never reach 15% of their own
-      // height inside a phone viewport, which left them invisible forever.
-      { threshold: 0.01, rootMargin: "0px 0px -8% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  }, [armed]);
   return (
-    <div ref={ref} className={`reveal ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+    <div
+      ref={ref}
+      className={`reveal ${armed ? "reveal-arm" : ""} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
       {children}
     </div>
   );

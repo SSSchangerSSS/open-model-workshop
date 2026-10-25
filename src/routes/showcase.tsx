@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { pageHead } from "@/lib/seo";
 import { useEffect, useState } from "react";
 import { Shell } from "@/components/Shell";
 import { Reveal } from "@/components/Reveal";
@@ -25,27 +26,16 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/showcase")({
-  head: () => ({
-    meta: [
-      { title: "نمونه‌کارهای n8n و Flowise | هوش برتر" },
-      {
-        name: "description",
-        content:
-          "۱۶ نمونه واقعی از اتوماسیون با n8n و Flowise: پشتیبانی خودکار، دستیار صوتی، پردازش فاکتور، RAG سازمانی، تولید محتوا، تحلیل قرارداد، پیش‌بینی موجودی و گزارش‌سازی.",
-      },
-      { property: "og:title", content: "نمونه‌کارهای واقعی n8n و Flowise | هوش برتر" },
-      {
-        property: "og:description",
-        content:
-          "چه نیازهایی با اتوماسیون و ایجنت‌های هوش مصنوعی حل شده‌اند؟ با اعداد واقعی ببینید و اجرای هر ورک‌فلو را شبیه‌سازی کنید.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://ssschangersss.github.io/open-model-workshop/showcase" },
-    ],
-  }),
+  head: () =>
+    pageHead({
+      title: "نمونه‌کارهای n8n و Flowise | هوش برتر",
+      description:
+        "۱۶ نمونه واقعی از اتوماسیون با n8n و Flowise: پشتیبانی خودکار، دستیار صوتی، پردازش فاکتور، RAG سازمانی، تولید محتوا، تحلیل قرارداد، پیش‌بینی موجودی و گزارش‌سازی.",
+      ogTitle: "نمونه‌کارهای واقعی n8n و Flowise | هوش برتر",
+      ogDescription:
+        "چه نیازهایی با اتوماسیون و ایجنت‌های هوش مصنوعی حل شده‌اند؟ با اعداد واقعی ببینید و اجرای هر ورک‌فلو را شبیه‌سازی کنید.",
+      path: "/showcase",
+    }),
   component: Showcase,
 });
 

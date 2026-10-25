@@ -1,7 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { Menu } from "lucide-react";
-import { Intro } from "./Intro";
 import {
   Sheet,
   SheetContent,
@@ -9,6 +8,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
+/* The intro is opt-in brand material — lazy chunk, mounted only on demand,
+   so SSR/first-paint/hydration never carry its ~2200 decorative elements. */
+const Intro = lazy(() => import("./Intro").then((m) => ({ default: m.Intro })));
 
 const nav = [
   { to: "/", label: "خانه" },
@@ -21,6 +24,7 @@ const nav = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [introPlay, setIntroPlay] = useState(0);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   // close the mobile menu on navigation
@@ -145,9 +149,23 @@ export function Shell({ children }: { children: ReactNode }) {
           DC-01 // CORRIDOR-SCENE (نمایشی) // 44 RACKS
         </p>
         © ۱۴۰۵ هوش برتر — اتوماسیون و زیرساخت هوش مصنوعی
+        {/* opt-in brand intro — never an entry gate, never in the critical path */}
+        <button
+          onClick={() => setIntroPlay((c) => c + 1)}
+          className="mt-3 block mx-auto rounded-md border border-border px-3 py-1.5 text-[11px] text-muted-foreground hover:text-primary hover:border-primary/50 transition"
+          aria-label="پخش انیمیشن ورود برند (نمایشی)"
+        >
+          پخش اینتروی برند
+        </button>
       </footer>
 
-      <Intro />
+      {/* brand intro plays only when explicitly requested; each click remounts
+          it (new key) so it can be replayed; lazy chunk fetched on demand */}
+      {introPlay > 0 && (
+        <Suspense fallback={null}>
+          <Intro key={introPlay} />
+        </Suspense>
+      )}
     </div>
   );
 }

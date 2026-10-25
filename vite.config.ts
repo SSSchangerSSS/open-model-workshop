@@ -21,11 +21,15 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
     // Static pre-rendering (SSG) — only for the GitHub Pages build.
+    // /404 is prerendered EXPLICITLY (no <Link> points at it, so crawling
+    // alone never reaches it) and becomes the real 404.html — no more
+    // `cp index.html 404.html` home-page clone (T7).
     ...(pagesBasePath
       ? {
           prerender: {
             enabled: true,
             crawlLinks: true,
+            pages: ["/404"],
           },
         }
       : {}),

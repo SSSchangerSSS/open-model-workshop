@@ -179,19 +179,23 @@
 @utility animate-aurora {
   animation: aurora 14s ease-in-out infinite alternate;
 }
-/* Scroll-reveal — progressive enhancement ONLY. By default (no JS) the
-   content is fully visible; the hidden pre-reveal state applies only when
-   <html> carries `js`, added by an inline head script before first paint. */
+/* Scroll-reveal — progressive enhancement ONLY, with a fail-open contract.
+   The hidden pre-reveal state is applied by the Reveal component itself
+   (class `reveal-arm`) right before it starts observing with
+   IntersectionObserver. If the JS bundle fails to download/execute AFTER
+   the inline head script ran, `reveal-arm` never lands on the element and
+   the content stays fully visible — content must never be hostage to a
+   broken chunk. */
 @utility reveal {
   transition:
     opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
     transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
-html.js .reveal {
+.reveal.reveal-arm {
   opacity: 0;
   transform: translateY(32px);
 }
-html.js .reveal.in {
+.reveal.reveal-arm.in {
   opacity: 1;
   transform: none;
 }
@@ -277,9 +281,10 @@ html {
 }
 
 /* ---------- SITE ENTRY (boot intro) ---------- */
-/* Desktop-only first-visit brand moment. Mobile, short viewports,
-   reduced-motion and no-JS users go straight to the content — the overlay
-   is display:none BEFORE first paint, never a blocker. */
+/* Brand intro — strictly OPT-IN now (footer button, lazy chunk). It is
+   never part of the initial page path, so no display:none pre-paint rules
+   are needed anymore: the overlay only exists while the user asked for it.
+   Under prefers-reduced-motion the global freeze rules show a static frame. */
 #boot-overlay {
   position: fixed;
   inset: 0;
@@ -290,20 +295,10 @@ html {
     opacity 0.7s ease,
     visibility 0s linear 0.7s;
 }
-html.intro-done #boot-overlay {
+#boot-overlay[data-closing] {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-}
-@media (max-width: 1023px) {
-  #boot-overlay {
-    display: none;
-  }
-}
-@media (max-height: 560px) {
-  #boot-overlay {
-    display: none;
-  }
 }
 .boot-line {
   opacity: 0;
@@ -326,11 +321,6 @@ html.intro-done #boot-overlay {
   }
   50% {
     filter: drop-shadow(0 0 26px color-mix(in oklab, var(--primary) 75%, transparent));
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  #boot-overlay {
-    display: none;
   }
 }
 
@@ -867,7 +857,7 @@ html.intro-done #boot-overlay {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  html.js .reveal {
+  .reveal.reveal-arm {
     opacity: 1;
     transform: none;
   }

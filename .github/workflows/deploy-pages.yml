@@ -35,8 +35,14 @@ jobs:
           PAGES_BASE_PATH: /open-model-workshop/
         run: bun run build
 
-      - name: Add 404 fallback (SPA-style routing for unknown paths)
-        run: cp .output/public/index.html .output/public/404.html
+      - name: Publish the real prerendered 404 page
+        run: |
+          # The /404 route is prerendered by the SSG build (vite.config.ts
+          # prerender.pages). It is a genuine Persian error page with
+          # noindex — NOT a copy of index.html, so broken links no longer
+          # serve the home body + home canonical.
+          test -f .output/public/404/index.html || { echo "::error::404 was not prerendered"; exit 1; }
+          cp .output/public/404/index.html .output/public/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
